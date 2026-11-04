@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STATE-Bench Tracker</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #1b1f24; --muted: #66707c; --line: #e3e6ea;
+  --accent: #3b5bdb; --pass: #2b8a3e; --pass-bg: #e6f4ea; --fail: #c92a2a; --fail-bg: #fdecec;
+  --wait: #b26a00; --wait-bg: #fff4e0; --err: #862e9c; --err-bg: #f6e8fa; --empty: #eceef1;
+  --user: #eef2ff; --agent: #ffffff; --code: #f3f4f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418; --panel: #1a1e24; --ink: #e6e9ed; --muted: #9aa4af; --line: #2b313a;
+    --accent: #7c96ff; --pass: #5cc77a; --pass-bg: #18301f; --fail: #ff7b7b; --fail-bg: #3a1c1c;
+    --wait: #f0b45a; --wait-bg: #36290f; --err: #d38cf0; --err-bg: #2f1d38; --empty: #252a31;
+    --user: #1e2540; --agent: #1a1e24; --code: #14171c;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+header h1 { font-size: 16px; margin: 0; }
+.root { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.live { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pass); }
+.dot.off { background: var(--muted); }
+main { padding: 16px 20px 40px; max-width: 1400px; margin: 0 auto; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.tab { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 6px 12px; border-radius: 999px; cursor: pointer; font: inherit; }
+.tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.kpi .label { color: var(--muted); font-size: 12px; }
+.kpi .value { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.kpi .sub { color: var(--muted); font-size: 12px; }
+.bar { height: 6px; background: var(--empty); border-radius: 3px; margin-top: 8px; overflow: hidden; display: flex; }
+.bar span { display: block; height: 100%; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.panel h2 { font-size: 13px; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tools { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+input[type=search], select { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 7px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.tid { font-family: ui-monospace, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.summ { color: var(--muted); font-size: 12px; max-width: 520px; }
+.cells { display: flex; gap: 4px; }
+.cell { width: 22px; height: 22px; border-radius: 5px; border: 0; cursor: pointer; font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+.cell.pass { background: var(--pass-bg); color: var(--pass); }
+.cell.fail { background: var(--fail-bg); color: var(--fail); }
+.cell.judging { background: var(--wait-bg); color: var(--wait); }
+.cell.error { background: var(--err-bg); color: var(--err); }
+.cell.none { background: var(--empty); color: var(--muted); cursor: default; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.feed { max-height: 70vh; overflow-y: auto; }
+.item { padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.item:hover, tr.click:hover { background: var(--bg); }
+.item .top { display: flex; gap: 8px; align-items: center; }
+.item .when { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.item .msg { color: var(--muted); font-size: 12px; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.chip.pass { background: var(--pass-bg); color: var(--pass); }
+.chip.fail { background: var(--fail-bg); color: var(--fail); }
+.chip.judging { background: var(--wait-bg); color: var(--wait); }
+.chip.error { background: var(--err-bg); color: var(--err); }
+.chip.plain { background: var(--empty); color: var(--muted); }
+.empty { padding: 30px 14px; color: var(--muted); text-align: center; }
+/* detail drawer */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; z-index: 10; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(820px, 100%); background: var(--bg); border-left: 1px solid var(--line); z-index: 11; transform: translateX(100%); transition: transform .18s ease; display: flex; flex-direction: column; }
+.open .scrim { display: block; }
+.open .drawer { transform: none; }
+.dhead { padding: 14px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.dhead .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dhead .close { margin-left: auto; font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+.dbody { overflow-y: auto; padding: 14px 18px 40px; }
+.section { margin-bottom: 18px; }
+.section h3 { font-size: 13px; margin: 0 0 8px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.req { display: flex; gap: 8px; }
+.req .mark { font-weight: 700; }
+.req .mark.ok { color: var(--pass); } .req .mark.no { color: var(--fail); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.ux { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; margin: 8px 0; }
+.ux div { background: var(--bg); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+.ux b { font-size: 15px; display: block; }
+.msgrow { display: flex; margin-bottom: 10px; }
+.bubble { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; max-width: 92%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bubble.user { background: var(--user); }
+.bubble.assistant { background: var(--agent); }
+.bubble.system { background: var(--code); color: var(--muted); font-size: 12px; max-width: 100%; }
+.who { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .04em; }
+.msgrow.user { justify-content: flex-end; }
+.calls { margin: 0 0 8px; display: flex; flex-direction: column; gap: 4px; }
+details.call { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+details.call summary { cursor: pointer; padding: 6px 10px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; list-style: none; overflow-wrap: anywhere; }
+details.call summary::-webkit-details-marker { display: none; }
+details.call summary::before { content: "▸ "; color: var(--muted); }
+details.call[open] summary::before { content: "▾ "; }
+details.call.bad { border-color: var(--fail); }
+pre { margin: 0; padding: 8px 10px; background: var(--code); font-size: 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 360px; overflow-y: auto; }
+.lbl { font-size: 11px; color: var(--muted); padding: 6px 10px 2px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>STATE-Bench Tracker</h1>
+  <span class="root" id="root"></span>
+  <div class="live"><span class="dot" id="dot"></span><span id="updated">connecting…</span>
+    <label><input type="checkbox" id="auto" checked> auto-refresh</label></div>
+</header>
+<main>
+  <div class="tabs" id="tabs"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid">
+    <div class="panel">
+      <h2>Tasks <span class="muted small" id="taskcount"></span>
+        <span class="tools">
+          <input type="search" id="q" placeholder="Search tasks">
+          <select id="filter">
+            <option value="all">All tasks</option>
+            <option value="fail">Has a failure</option>
+            <option value="pass">Passed every run</option>
+            <option value="pending">Not finished</option>
+            <option value="error">Has an error</option>
+          </select>
+        </span></h2>
+      <div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h2>Recent activity</h2>
+      <div class="feed" id="feed"></div>
+    </div>
+  </div>
+</main>
+<div id="detail">
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" aria-label="Trajectory detail">
+    <div class="dhead" id="dhead"></div>
+    <div class="dbody" id="dbody"></div>
+  </aside>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pct = (x) => (x == null ? "—" : (x * 100).toFixed(1) + "%");
+const num = (x, d = 2) => (x == null ? "—" : Number(x).toFixed(d));
+const money = (x) => (x == null ? "—" : "$" + (x < 1 ? x.toFixed(4) : x.toFixed(2)));
+const ago = (t) => { const s = Math.max(0, Date.now() / 1000 - t); return s < 60 ? Math.round(s) + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : s < 86400 ? Math.round(s / 3600) + "h ago" : Math.round(s / 86400) + "d ago"; };
+const LABEL = { pass: "Pass", fail: "Fail", judging: "Judging", error: "Error" };
+const GLYPH = { pass: "✓", fail: "✗", judging: "…", error: "!" };
+
+let data = null, view = "__all__", lastOk = 0;
+try { view = localStorage.getItem("sbt-view") || view; } catch (e) {}
+
+async function refresh() {
+  try {
+    const r = await fetch("/api/summary");
+    data = await r.json();
+    lastOk = Date.now();
+    render();
+  } catch (e) { $("dot").classList.add("off"); $("updated").textContent = "can't reach tracker server"; }
+}
+
+function current() {
+  if (!data) return null;
+  if (view !== "__all__") { const d = data.domains.find((d) => d.name === view); if (d) return { metrics: d.metrics, domains: [d] }; view = "__all__"; }
+  return { metrics: data.overall, domains: data.domains };
+}
+
+function render() {
+  $("root").textContent = data.root;
+  $("dot").classList.remove("off");
+  $("updated").textContent = "updated " + new Date(lastOk).toLocaleTimeString();
+  const tabs = [["__all__", "All domains"], ...data.domains.map((d) => [d.name, d.name])];
+  $("tabs").innerHTML = tabs.map(([k, l]) => `<button class="tab ${k === view ? "on" : ""}" data-k="${esc(k)}">${esc(l)}</button>`).join("");
+  const cur = current();
+  renderKpis(cur.metrics, cur.domains);
+  renderTable(cur.domains);
+  renderFeed();
+}
+
+function renderKpis(m, domains) {
+  const n = Math.max(1, m.expected);
+  const official = domains.length === 1 && domains[0].official_metrics ? " · metrics.json found" : "";
+  const nRuns = Math.max(0, ...domains.map((d) => d.num_runs));
+  const tiles = [
+    { label: "Progress", value: `${m.finished}/${m.expected || "?"}`, sub: `${m.judging} judging · ${m.errors} errors${official}`,
+      bar: `<span style="width:${(100 * (m.scored)) / n}%;background:var(--accent)"></span><span style="width:${(100 * m.judging) / n}%;background:var(--wait)"></span>` },
+    { label: "Pass@1", value: pct(m.pass_at_1), sub: `over ${m.scored} scored runs` },
+    { label: `Pass^${nRuns} (all runs pass)`, value: pct(m.pass_all), sub: `${m.pass_all_tasks} tasks with every run scored` },
+    { label: "Mean UX score", value: num(m.mean_ux), sub: "judge, 1–5 scale" },
+    { label: "Agent cost", value: money(m.total_cost), sub: `${money(m.cost_per_traj)} per run` },
+  ];
+  $("kpis").innerHTML = tiles.map((t) => `<div class="kpi"><div class="label">${esc(t.label)}</div><div class="value">${t.value}</div><div class="sub">${esc(t.sub)}</div>${t.bar ? `<div class="bar">${t.bar}</div>` : ""}</div>`).join("");
+}
+
+function taskMatches(t, nRuns, q, f) {
+  if (q && !(t.task_id + " " + t.task_summary).toLowerCase().includes(q)) return false;
+  const st = Object.values(t.runs).map((r) => r.status);
+  if (f === "fail") return st.includes("fail");
+  if (f === "error") return st.includes("error");
+  if (f === "pass") return st.length >= nRuns && st.every((s) => s === "pass");
+  if (f === "pending") return st.length < nRuns || st.includes("judging");
+  return true;
+}
+
+function renderTable(domains) {
+  const q = $("q").value.trim().toLowerCase(), f = $("filter").value;
+  const nRuns = Math.max(1, ...domains.map((d) => d.num_runs));
+  const multi = domains.length > 1;
+  $("thead").innerHTML = `<tr><th>Task</th>${multi ? "<th>Domain</th>" : ""}<th>Runs</th><th>Pass</th><th>UX</th><th>Tools</th></tr>`;
+  let rows = [], total = 0;
+  for (const d of domains) for (const t of d.tasks) {
+    total++;
+    if (!taskMatches(t, d.num_runs, q, f)) continue;
+    const runs = Object.values(t.runs);
+    const scored = runs.filter((r) => r.status === "pass" || r.status === "fail");
+    const passes = scored.filter((r) => r.status === "pass").length;
+    const ux = runs.map((r) => r.ux_score).filter((x) => typeof x === "number");
+    const tools = runs.map((r) => r.tool_calls).filter((x) => typeof x === "number");
+    let cells = "";
+    for (let i = 1; i <= d.num_runs; i++) {
+      const r = t.runs[String(i)];
+      cells += r ? `<button class="cell ${r.status}" title="Run ${i}: ${LABEL[r.status]}" data-path="${esc(r.path)}">${GLYPH[r.status]}</button>` : `<span class="cell none" title="Run ${i}: not started or still running">·</span>`;
+    }
+    rows.push(`<tr><td><div class="tid">${esc(t.task_id)}</div>${t.task_summary ? `<div class="summ">${esc(t.task_summary)}</div>` : ""}</td>${multi ? `<td class="small">${esc(d.name)}</td>` : ""}<td><div class="cells">${cells}</div></td><td class="num">${scored.length ? `${passes}/${scored.length}` : "—"}</td><td class="num">${ux.length ? num(ux.reduce((a, b) => a + b, 0) / ux.length) : "—"}</td><td class="num">${tools.length ? num(tools.reduce((a, b) => a + b, 0) / tools.length, 1) : "—"}</td></tr>`);
+  }
+  $("taskcount").textContent = rows.length === total ? `${total}` : `${rows.length} of ${total}`;
+  $("tbody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="6"><div class="empty">${total ? "No tasks match this filter." : "No runs found yet. Start run_batch with --output-dir pointing at this folder."}</div></td></tr>`;
+}
+
+function renderFeed() {
+  const items = data.activity.filter((r) => view === "__all__" || r.domain === view);
+  $("feed").innerHTML = items.length ? items.map((r) => `
+    <div class="item" data-path="${esc(r.path)}">
+      <div class="top"><span class="chip ${r.status}">${LABEL[r.status]}</span><span class="tid">${esc(r.task_id)}</span><span class="when">run ${r.run} · ${ago(r.mtime)}</span></div>
+      <div class="msg">${r.last_tool ? `<b>${esc(r.last_tool)}</b> · ` : ""}${esc(r.last_message) || "<i>no agent message</i>"}</div>
+    </div>`).join("") : `<div class="empty">Nothing yet. Finished conversations show up here as they're saved.</div>`;
+}
+
+// ---------- detail drawer ----------
+async function openDetail(path) {
+  document.body.classList.add("open");
+  $("dhead").innerHTML = `<div class="row"><b class="tid">${esc(path)}</b><button class="close" id="x">Close</button></div>`;
+  $("dbody").innerHTML = `<div class="empty">Loading…</div>`;
+  const r = await fetch("/api/trajectory?path=" + encodeURIComponent(path));
+  const t = await r.json();
+  if (t.error && !t.conversation) { $("dbody").innerHTML = `<div class="empty">${esc(t.error)}</div>`; return; }
+  const status = t.error ? "error" : t.task_completion_pass == null ? "judging" : t.task_completion_pass ? "pass" : "fail";
+  const am = t.agent_model || {};
+  $("dhead").innerHTML = `<div class="row"><span class="chip ${status}">${LABEL[status]}</span><b class="tid">${esc(t.task_id)}</b><button class="close" id="x">Close</button></div>
+    ${t.task_summary ? `<div class="small muted" style="margin-top:6px">${esc(t.task_summary)}</div>` : ""}
+    <div class="row small muted" style="margin-top:6px">${[am.model_name && `model ${am.model_name}${am.reasoning_level ? " (" + am.reasoning_level + ")" : ""}`, t.turns != null && `${t.turns} turns`, t.tool_calls != null && `${t.tool_calls} tool calls`, t.tool_errors ? `${t.tool_errors} tool errors` : "", t.redundant_calls ? `${t.redundant_calls} repeated calls` : "", t.total_tokens && `${t.total_tokens.toLocaleString()} tokens`, t.reasoning_output_tokens && `${t.reasoning_output_tokens.toLocaleString()} reasoning tokens`, t.cost_usd && money(t.cost_usd)].filter(Boolean).map(esc).join(" · ")}</div>`;
+  $("dbody").innerHTML = judgeSection(t) + convoSection(t);
+}
+
+function mark(ok) { return ok == null ? `<span class="mark muted">?</span>` : `<span class="mark ${ok ? "ok" : "no"}">${ok ? "✓" : "✗"}</span>`; }
+
+function judgeSection(t) {
+  if (t.error) return `<div class="section"><h3>Error</h3><div class="card"><pre>${esc(t.error)}</pre></div></div>`;
+  let h = `<div class="section"><h3>Why it passed or failed</h3>`;
+  if (t.task_completion_pass == null && t.state_requirements_met == null && t.ux_score == null)
+    return h + `<div class="card muted">Not scored yet. The judges may still be running on this conversation.</div></div>`;
+  // state check
+  h += `<div class="card"><div class="req">${mark(t.state_requirements_met == null ? null : !!t.state_requirements_met)}<div><b>Database end state</b><div class="small">${esc(t.state_requirements_reasoning || "")}</div>`;
+  const sd = t.state_requirements_details || {};
+  for (const [k, title] of [["missing_assertions", "Expected but missing"], ["unexpected_assertions", "Changed but shouldn't have"], ["unresolved_match_requirements", "Couldn't match"]]) {
+    if (sd[k] && sd[k].length) h += `<div class="small" style="margin-top:6px"><b>${title}</b><ul style="margin:4px 0;padding-left:18px">${sd[k].map((a) => `<li class="tid">${a.entity_type ? esc(`${a.entity_type} ${a.record_key} · ${a.field} = ${JSON.stringify(a.value)}`) : esc(JSON.stringify(a))}</li>`).join("")}</ul></div>`;
+  }
+  h += `</div></div></div>`;
+  // task requirements
+  const reqs = Array.isArray(t.task_requirements_details) ? t.task_requirements_details : [];
+  h += `<div class="card"><div class="req">${mark(t.task_requirements_met == null ? null : !!t.task_requirements_met)}<div style="flex:1"><b>Conversation requirements</b>${t.task_requirements_reasoning ? `<div class="small">${esc(t.task_requirements_reasoning)}</div>` : ""}`;
+  for (const q of reqs) h += `<div class="req small" style="margin-top:8px">${mark(q.passed == null ? null : q.passed === true)}<div><div>${esc(q.requirement || q.id)}</div>${q.reasoning ? `<div class="muted">Judge: ${esc(q.reasoning)}</div>` : ""}</div></div>`;
+  if (!reqs.length && t.task_requirements_met == null) h += `<div class="small muted">No judge result.</div>`;
+  h += `</div></div></div>`;
+  // UX
+  if (t.ux_score != null) {
+    const subs = [["User control", t.ux_user_control], ["Friction", t.ux_friction], ["User effort", t.ux_user_effort], ["Awareness", t.ux_situational_awareness], ["Communication", t.ux_communication_quality], ["Intent", t.ux_intent_alignment], ["Density", t.ux_response_density]].filter(([, v]) => v != null);
+    h += `<div class="card"><b>UX score ${num(t.ux_score)}</b>${t.ux_resource_penalty ? ` <span class="small muted">(base ${num(t.ux_base_score)}, −${num(t.ux_resource_penalty)} for extra turns/tool calls)</span>` : ""}
+      <div class="ux">${subs.map(([l, v]) => `<div>${esc(l)}<b>${esc(v)}</b></div>`).join("")}</div>${t.ux_reasoning ? `<div class="small">${esc(t.ux_reasoning)}</div>` : ""}</div>`;
+  }
+  return h + `</div>`;
+}
+
+function fmt(v) { return typeof v === "string" ? v : JSON.stringify(v, null, 2); }
+function callArgs(a) { if (!a || typeof a !== "object") return ""; return Object.entries(a).map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`).join(", "); }
+function isErr(res) { return res && typeof res === "object" && ("error" in res || res.status === "error"); }
+
+function convoSection(t) {
+  const conv = t.conversation || [];
+  let h = `<div class="section"><h3>Conversation <span class="small muted">· agent messages with the tools it called before replying</span></h3>`;
+  for (const m of conv) {
+    const role = m.role || "assistant";
+    if (role === "tool") continue;
+    const calls = Array.isArray(m.tool_calls) ? m.tool_calls : [];
+    if (role === "assistant" && calls.length) {
+      h += `<div class="calls">${calls.map((c, i) => `<details class="call ${isErr(c.result) ? "bad" : ""}"><summary>${i + 1}. ${esc(c.name)}(${esc(callArgs(c.arguments))})${isErr(c.result) ? " · error" : ""}</summary><div class="lbl">arguments</div><pre>${esc(fmt(c.arguments))}</pre><div class="lbl">result</div><pre>${esc(fmt(c.result))}</pre></details>`).join("")}</div>`;
+    }
+    const content = typeof m.content === "string" ? m.content : fmt(m.content);
+    if (role === "user" && content.trim() === "[TASK_DONE]") { h += `<div class="small muted" style="text-align:center;margin:10px 0">Simulated user ended the conversation</div>`; continue; }
+    const who = role === "user" ? "Simulated user" : role === "assistant" ? "Agent" : role;
+    h += `<div class="msgrow ${esc(role)}"><div class="bubble ${esc(role)}"><div class="who">${esc(who)}</div>${esc(content)}</div></div>`;
+  }
+  return h + `</div>`;
+}
+
+function closeDetail() { document.body.classList.remove("open"); }
+
+document.addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (tab) { view = tab.dataset.k; try { localStorage.setItem("sbt-view", view); } catch (err) {} render(); return; }
+  if (e.target.id === "x" || e.target.id === "scrim") { closeDetail(); return; }
+  const p = e.target.closest("[data-path]");
+  if (p) openDetail(p.dataset.path);
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
+$("q").addEventListener("input", () => data && render());
+$("filter").addEventListener("change", () => data && render());
+setInterval(() => { if ($("auto").checked) refresh(); }, 4000);
+refresh();
+</script>
+</body>
+</html>

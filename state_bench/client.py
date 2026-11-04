@@ -863,19 +863,31 @@ def build_judge_client(env_prefix: str = "JUDGE") -> LLMClient | PooledLLMClient
     return build_llm_client()
 
 
-def build_user_sim_client() -> LLMClient | PooledLLMClient:
-    """Build the locked user-simulator client for canonical protocol runs."""
+def _build_eval_client() -> LLMClient | PooledLLMClient:
+    """Build the simulator/judge client: Azure by default, or OpenAI directly.
+
+    Local change (not upstream): set STATE_BENCH_EVAL_PROVIDER="openai" to call the
+    OpenAI API with STATE_BENCH_EVAL_API_KEY and STATE_BENCH_EVAL_MODEL (default gpt-5.4).
+    Runs made this way are unofficial.
+    """
+    if os.environ.get("STATE_BENCH_EVAL_PROVIDER", "").strip().lower() == "openai":
+        return build_llm_client(
+            deployments=[os.environ.get("STATE_BENCH_EVAL_MODEL", "gpt-5.4")],
+            provider="openai",
+            api_key_var="STATE_BENCH_EVAL_API_KEY",
+        )
     return build_llm_client(
         endpoint_var="STATE_BENCH_EVAL_ENDPOINT",
         deployments_var="STATE_BENCH_EVAL_DEPLOYMENTS",
         api_key_var="STATE_BENCH_EVAL_API_KEY",
     )
+
+
+def build_user_sim_client() -> LLMClient | PooledLLMClient:
+    """Build the locked user-simulator client for canonical protocol runs."""
+    return _build_eval_client()
 
 
 def build_locked_judge_client() -> LLMClient | PooledLLMClient:
     """Build the locked judge client for canonical protocol scoring."""
-    return build_llm_client(
-        endpoint_var="STATE_BENCH_EVAL_ENDPOINT",
-        deployments_var="STATE_BENCH_EVAL_DEPLOYMENTS",
-        api_key_var="STATE_BENCH_EVAL_API_KEY",
-    )
+    return _build_eval_client()
