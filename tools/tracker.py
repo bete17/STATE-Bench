@@ -150,7 +150,12 @@ def build_summary(root: Path, split: str, num_runs_arg: int | None) -> dict:
                     s["domain"] = key
                     rows.append(s)
         num_runs = num_runs_arg or max(run_dirs)
-        expected_ids = _split_task_ids(domain_name, split)
+        # A tasks.txt next to the run folders (one task id per line) overrides the split.
+        tasks_file = next(iter(run_dirs.values())).parent / "tasks.txt"
+        if tasks_file.is_file():
+            expected_ids = [line.strip() for line in tasks_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+        else:
+            expected_ids = _split_task_ids(domain_name, split)
         seen = {r["task_id"] for r in rows}
         task_ids = expected_ids + sorted(seen - set(expected_ids))
         summaries = {r["task_id"]: r.get("task_summary", "") for r in rows}
