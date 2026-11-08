@@ -62,6 +62,9 @@ tr:last-child td { border-bottom: 0; }
 .feed { max-height: 70vh; overflow-y: auto; }
 .item { padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
 .item:hover, tr.click:hover { background: var(--bg); }
+.tlink { cursor: pointer; border-radius: 6px; margin: -4px -6px; padding: 4px 6px; }
+.tlink:hover { background: var(--bg); }
+.tlink:hover .tid { text-decoration: underline; }
 .item .top { display: flex; gap: 8px; align-items: center; }
 .item .when { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .item .msg { color: var(--muted); font-size: 12px; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -217,7 +220,7 @@ function renderTable(domains) {
   const q = $("q").value.trim().toLowerCase(), f = $("filter").value;
   const nRuns = Math.max(1, ...domains.map((d) => d.num_runs));
   const multi = domains.length > 1;
-  $("thead").innerHTML = `<tr><th>Task</th>${multi ? "<th>Domain</th>" : ""}<th>Runs</th><th>Pass</th><th>UX</th><th>Tools</th></tr>`;
+  $("thead").innerHTML = `<tr><th>Task</th>${multi ? "<th>Domain</th>" : ""}<th>Runs</th><th>Pass</th><th title="Sorted lowest first">UX ↑</th><th>Tools</th></tr>`;
   let rows = [], total = 0;
   for (const d of domains) for (const t of d.tasks) {
     total++;
@@ -232,8 +235,14 @@ function renderTable(domains) {
       const r = t.runs[String(i)];
       cells += r ? `<button class="cell ${r.status}" title="Run ${i}: ${LABEL[r.status]}" data-path="${esc(r.path)}">${GLYPH[r.status]}</button>` : `<span class="cell none" title="Run ${i}: not started or still running">·</span>`;
     }
-    rows.push(`<tr><td><div class="tid">${esc(t.task_id)}</div>${t.task_summary ? `<div class="summ">${esc(t.task_summary)}</div>` : ""}</td>${multi ? `<td class="small">${esc(d.name)}</td>` : ""}<td><div class="cells">${cells}</div></td><td class="num">${scored.length ? `${passes}/${scored.length}` : "—"}</td><td class="num">${ux.length ? num(ux.reduce((a, b) => a + b, 0) / ux.length) : "—"}</td><td class="num">${tools.length ? num(tools.reduce((a, b) => a + b, 0) / tools.length, 1) : "—"}</td></tr>`);
+    const latest = Object.keys(t.runs).map(Number).sort((a, b) => b - a).map((k) => t.runs[String(k)]).find((r) => r && r.path);
+    const title = `<div class="tid">${esc(t.task_id)}</div>${t.task_summary ? `<div class="summ">${esc(t.task_summary)}</div>` : ""}`;
+    const uxMean = ux.length ? ux.reduce((a, b) => a + b, 0) / ux.length : null;
+    rows.push({ ux: uxMean, html: `<tr><td>${latest ? `<div class="tlink" title="Open latest run" data-path="${esc(latest.path)}">${title}</div>` : title}</td>${multi ? `<td class="small">${esc(d.name)}</td>` : ""}<td><div class="cells">${cells}</div></td><td class="num">${scored.length ? `${passes}/${scored.length}` : "—"}</td><td class="num">${uxMean !== null ? num(uxMean) : "—"}</td><td class="num">${tools.length ? num(tools.reduce((a, b) => a + b, 0) / tools.length, 1) : "—"}</td></tr>` });
   }
+  // lowest UX first; tasks with no UX score yet go last
+  rows.sort((a, b) => (a.ux === null) - (b.ux === null) || (a.ux ?? 0) - (b.ux ?? 0));
+  rows = rows.map((r) => r.html);
   $("taskcount").textContent = rows.length === total ? `${total}` : `${rows.length} of ${total}`;
   $("tbody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="6"><div class="empty">${total ? "No tasks match this filter." : "No runs found yet. Start run_batch with --output-dir pointing at this folder."}</div></td></tr>`;
 }
