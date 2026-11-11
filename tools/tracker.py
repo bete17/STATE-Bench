@@ -63,6 +63,16 @@ def _last_agent_activity(conversation: list) -> tuple[str, str]:
     return "", ""
 
 
+def _read_json(path: Path):
+    """A trajectory file as JSON. run_batch writes with the system's default encoding,
+    which on Windows is cp1252 rather than UTF-8, so try UTF-8 first and fall back."""
+    data = path.read_bytes()
+    try:
+        return json.loads(data.decode("utf-8"))
+    except UnicodeDecodeError:
+        return json.loads(data.decode("cp1252"))
+
+
 def _summarize(path: Path, root: Path, run: int) -> dict | None:
     try:
         mtime = path.stat().st_mtime
@@ -72,7 +82,7 @@ def _summarize(path: Path, root: Path, run: int) -> dict | None:
     if cached and cached[0] == mtime:
         return cached[1]
     try:
-        traj = json.loads(path.read_text(encoding="utf-8"))
+        traj = _read_json(path)
     except (OSError, ValueError):
         # File may be mid-write; show it as in progress rather than failing.
         return {
@@ -233,7 +243,7 @@ def make_handler(root: Path, split: str, num_runs: int | None):
                     self._json({"error": "not found"}, 404)
                     return
                 try:
-                    self._json(json.loads(target.read_text(encoding="utf-8")))
+                    self._json(_read_json(target))
                 except ValueError:
                     self._json({"error": "file is still being written, try again"}, 409)
             else:
