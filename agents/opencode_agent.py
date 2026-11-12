@@ -259,6 +259,7 @@ class OpenCodeAgent(StateBenchAgent):
     """STATE-Bench agent backed by an OpenCode session (no ag)."""
 
     use_ag = False
+    ag_seed = False     # start the task's gatherer from the domain's seeded training gatherer
 
     # Named parameters: run_task passes agent_reasoning_effort only to a constructor that names it.
     def __init__(
@@ -339,6 +340,8 @@ class OpenCodeAgent(StateBenchAgent):
 
         serve = ["serve", "--hostname", "127.0.0.1", "--port", "0"]
         if self.use_ag:
+            if self.ag_seed:
+                copy_gatherer(seed_gatherer_name(self.runtime_context.domain), self.gatherer)
             env["AG_PYTHON"] = sys.executable
             cmd = [sys.executable, "-m", "ag.cli", "--gatherer", self.gatherer, "opencode", *serve]
         else:
@@ -417,8 +420,10 @@ class OpenCodeAgent(StateBenchAgent):
             texts.extend(p.get("text", "") for p in m.get("parts", []) if p.get("type") == "text")
             tokens = info.get("tokens") or {}
             cache = tokens.get("cache") or {}
+            # OpenCode splits the prompt into uncached input, cache reads and cache writes;
+            # all three are input tokens (OpenAI reports them as input, with reads as cached).
             self.add_token_usage(
-                input_tokens=int(tokens.get("input", 0)) + int(cache.get("read", 0)),
+                input_tokens=int(tokens.get("input", 0)) + int(cache.get("read", 0)) + int(cache.get("write", 0)),
                 output_tokens=int(tokens.get("output", 0)) + int(tokens.get("reasoning", 0)),
                 cached_input_tokens=int(cache.get("read", 0)),
                 reasoning_output_tokens=int(tokens.get("reasoning", 0)),
@@ -445,6 +450,9 @@ class OpenCodeAgent(StateBenchAgent):
         trajectory.metadata["opencode"] = {
             "ag": self.use_ag,
             "gatherer": self.gatherer,
+            "ag_seed": seed_gatherer_name(self.runtime_context.domain) if self.ag_seed else None,
+            "training_lookup": self.retrieval_enabled,
+            "session": self.session_id,
             "model": self.model,
             "reasoning_effort": self.agent_reasoning_effort,
             "turns": self.turns,
@@ -463,3 +471,133 @@ class OpenCodeAgAgent(OpenCodeAgent):
     """The same OpenCode agent, launched through Actor-Gatherer."""
 
     use_ag = True
+
+
+# --------------------------------------------------------------------------- training conversations
+#
+# The Agent Learning Track's 100 training conversations per domain
+# (datasets/train_task_trajectories/<domain>/), given to the agent two ways:
+#
+#   retrieve_learnings   STATE-Bench's own hook. Defining it makes StateBenchAgent add the
+#                        retrieve_learnings tool, its system-prompt instruction and the run's
+#                        --retrieve-learnings-top-k; OpenCode gets the tool through the bridge.
+#                        It returns the training conversations most similar to the query (BM25).
+#   seeded gatherer      for ag: tools/seed_ag_training.py loads a domain's training conversations
+#                        into the gatherer statebench-train-<domain>, one channel each; every task
+#                        run starts from a copy of it, so no task sees another test task.
+
+TRAIN_DIR = Path(__file__).resolve().parent.parent / "datasets" / "train_task_trajectories"
+CONVERSATION_CHARS = 6000          # one returned conversation, condensed, at most
+TOOL_RESULT_CHARS = 300
+
+
+def condense_conversation(conversation: list[dict[str, Any]]) -> str:
+    """A training conversation as plain text: the customer's and agent's messages, and each tool call."""
+    lines: list[str] = []
+    for m in conversation:
+        role = m.get("role")
+        if role == "user" and m.get("content"):
+            lines.append(f"Customer: {m['content']}")
+        elif role == "assistant":
+            for c in m.get("tool_calls") or []:
+                result = json.dumps(c.get("result"), ensure_ascii=False, default=str)
+                if len(result) > TOOL_RESULT_CHARS:
+                    result = result[:TOOL_RESULT_CHARS] + "..."
+                lines.append(f"  [tool] {c.get('name')}({json.dumps(c.get('arguments'), ensure_ascii=False)}) -> {result}")
+            if m.get("content"):
+                lines.append(f"Agent: {m['content']}")
+    text = "\n".join(lines)
+    return text if len(text) <= CONVERSATION_CHARS else text[:CONVERSATION_CHARS] + "\n[... conversation cut]"
+
+
+def load_training(domain: str) -> list[tuple[str, list[dict[str, Any]]]]:
+    """[(task id, conversation)] for a domain's training conversations, in file-name order."""
+    out = []
+    for path in sorted((TRAIN_DIR / domain).glob("*.json")):
+        out.append((path.stem, json.loads(path.read_text(encoding="utf-8"))["conversation"]))
+    if not out:
+        raise RuntimeError(f"no training conversations under {TRAIN_DIR / domain}")
+    return out
+
+
+class _TrainingIndex:
+    """BM25 over one domain's condensed training conversations."""
+
+    def __init__(self, domain: str, k1: float = 1.5, b: float = 0.75):
+        import math
+        import re
+        from collections import Counter
+
+        self._re, self._math, self.k1, self.b = re.compile(r"[a-z0-9]+"), math, k1, b
+        self.docs = [(tid, condense_conversation(conv)) for tid, conv in load_training(domain)]
+        self.tfs = [Counter(self._tokens(text)) for _, text in self.docs]
+        self.lengths = [sum(tf.values()) for tf in self.tfs]
+        self.avg = sum(self.lengths) / len(self.lengths)
+        df = Counter(term for tf in self.tfs for term in tf)
+        n = len(self.docs)
+        self.idf = {t: math.log(1 + (n - c + 0.5) / (c + 0.5)) for t, c in df.items()}
+
+    def _tokens(self, text: str) -> list[str]:
+        return self._re.findall(text.lower())
+
+    def search(self, query: str, top_k: int) -> list[str]:
+        terms = set(self._tokens(query))
+        scores = []
+        for i, tf in enumerate(self.tfs):
+            s = 0.0
+            for t in terms:
+                if t in tf:
+                    f = tf[t]
+                    s += self.idf[t] * f * (self.k1 + 1) / (f + self.k1 * (1 - self.b + self.b * self.lengths[i] / self.avg))
+            scores.append((s, i))
+        best = [i for s, i in sorted(scores, reverse=True)[:top_k] if s > 0]
+        return [f"Past conversation ({self.docs[i][0]}):\n{self.docs[i][1]}" for i in best]
+
+
+_indexes: dict[str, _TrainingIndex] = {}
+_index_lock = threading.Lock()
+
+
+def training_index(domain: str) -> _TrainingIndex:
+    with _index_lock:
+        if domain not in _indexes:
+            _indexes[domain] = _TrainingIndex(domain)
+        return _indexes[domain]
+
+
+def seed_gatherer_name(domain: str) -> str:
+    return f"statebench-train-{domain}"
+
+
+def copy_gatherer(source: str, target: str) -> None:
+    """A new gatherer `target` with `source`'s settings and a consistent copy of its database."""
+    import sqlite3
+
+    from ag.ag_harness.store.paths import gatherer_dir
+
+    src, dst = Path(gatherer_dir(source)), Path(gatherer_dir(target))
+    if not (src / "context.db").is_file():
+        raise RuntimeError(f"gatherer {source} not found: run tools/seed_ag_training.py first")
+    if dst.exists():
+        raise RuntimeError(f"gatherer {target} already exists")
+    dst.mkdir(parents=True)
+    shutil.copy2(src / "gatherer.toml", dst / "gatherer.toml")
+    with sqlite3.connect(f"file:{src / 'context.db'}?mode=ro", uri=True) as a, sqlite3.connect(dst / "context.db") as b:
+        a.backup(b)
+
+
+class _TrainingLookup:
+    """Mixin: STATE-Bench's retrieve_learnings hook over this domain's training conversations."""
+
+    def retrieve_learnings(self, query: str, top_k: int = 3) -> list[str]:
+        return training_index(self.runtime_context.domain).search(query, top_k)
+
+
+class OpenCodeTrainAgent(_TrainingLookup, OpenCodeAgent):
+    """OpenCode with the training conversations available through retrieve_learnings."""
+
+
+class OpenCodeAgTrainAgent(_TrainingLookup, OpenCodeAgAgent):
+    """The same, through ag, with each task's gatherer starting as a copy of the domain's seeded one."""
+
+    ag_seed = True
