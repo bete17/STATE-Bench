@@ -1,0 +1,331 @@
+{
+  "task_id": "76-variant_price_delta_silent_disclosure",
+  "user_id": "shop_003",
+  "task_summary": "**Task:** A Gold-tier returning customer (shop_003, Sam Chen) asks for the SlimBook Air 13 (SP-1001, base $849) with the 16GB RAM variant. The 16gb variant carries a +$150 price_delta — effective $999. The add_to_cart tool accepts the variant_id and computes the delta internally (via _unit_price) but does NOT force the agent to quote the delta. The customer knows base price but not the upcharge. Agent must check variants (get_variants or get_product_details), quote the effective $999 BEFORE adding, get customer consent, then call add_to_cart. Final cart: SP-1001 variant_id='16gb', qty=1, no wrap, subtotal $999, total $999.\n\n**Challenge:** Variant delta disclosure. Parallel to T12 (gift-wrap fee disclosure) but for the variant price path. Primary failure: agents that route the variant_id blindly and skip the price-delta check. The env recomputes cart aggregates correctly, so state is right — but the customer was never told about the $150 upcharge, producing a silent expectation mismatch. Secondary failures: misquoting the base price while cart is at the delta price, or defensively picking the base variant without asking.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 0,
+  "task_requirements_details": [
+    {
+      "id": "checked_variant_pricing",
+      "kind": "must",
+      "requirement": "Agent called get_variants OR get_product_details for SP-1001 BEFORE calling add_to_cart, so they can see the 16gb variant's price_delta. A direct add_to_cart with variant_id='16gb' without a prior variant-pricing check fails this.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "Before add_to_cart, the agent called get_variants for SP-1001 and saw the 16gb option with effective_price $999."
+    },
+    {
+      "id": "disclosed_effective_price",
+      "kind": "must",
+      "requirement": "Agent quoted the effective $999 (or the +$150 delta) to the customer BEFORE calling add_to_cart. Post-hoc disclosure in the cart summary does not satisfy this — the customer needs the number before committing.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The agent did not tell the customer the 16GB variant costs $999 or has a +$150 upcharge before calling add_to_cart; the only price disclosure came after the item was already added."
+    },
+    {
+      "id": "customer_consent_on_upgrade",
+      "kind": "must",
+      "requirement": "Agent got customer confirmation on the upgraded price before adding to cart. Silently adding the 16gb variant without a consent checkpoint fails this.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The agent added the 16gb variant without a confirmation step after disclosing the upgrade price. The user requested 16GB RAM, but there was no explicit consent to the higher $999 price before add_to_cart."
+    },
+    {
+      "id": "added_16gb_variant",
+      "kind": "must",
+      "requirement": "Agent called add_to_cart with variant_id='16gb'. The final cart must have SP-1001 with variant_id='16gb'. Base 8gb or a different variant fails.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The add_to_cart call used product_id SP-1001 with variant_id '16gb', and the tool result shows variant_id '16gb' in the cart."
+    },
+    {
+      "id": "did_not_misquote_price",
+      "kind": "must_not",
+      "requirement": "Agent did NOT claim in conversation that the total is $849 (base price) while the cart actually shows $999. Cart state and conversational claims must match.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The assistant said the item was added for $999 and the cart total is $999, which matches the add_to_cart result."
+    },
+    {
+      "id": "no_unsolicited_new_writes",
+      "kind": "must_not",
+      "requirement": "Agent did NOT call set_shipping_option or redeem_loyalty_points. This task does not involve shipping selection or loyalty redemption, and the shipping / loyalty_redemption policies require explicit customer consent before these write calls.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "There were no calls to set_shipping_option or redeem_loyalty_points."
+    }
+  ],
+  "task_completion_pass": 0,
+  "ux_user_control": 2,
+  "ux_score": 2.5,
+  "ux_reasoning": "The agent made a consequential cart change before getting explicit approval for the 16GB variant’s higher price, even though the tools showed the effective price was $999 versus the $849 base model. That is a clear control problem: it bundled price disclosure and execution instead of previewing the upcharge and waiting for consent. User effort was better because the request was fulfilled in one turn with no visible troubleshooting, but the agent failed to surface key decision-changing context the user should have been given before the add. The response was concise, but too terse for this case because it omitted the important +$150 variant explanation and gave the price only after the state change.",
+  "turns": 1,
+  "tool_calls": 4,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hey — please add the SlimBook Air 13 with 16GB RAM to my cart."
+    },
+    {
+      "role": "assistant",
+      "content": "Added **1 × SlimBook Air 13 with 16GB RAM** to your cart for **$999**.\n\n**Cart total: $999.**",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "Add SlimBook Air 13 laptop 16GB RAM to customer shop_003 cart; verify product and RAM variant selection",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (1-recommend_college_laptop):\nCustomer: Hi — I'm starting college next month and I need a laptop for schoolwork. My budget is around $1,000, and portability matters most to me since I'll be carrying it around campus every day. Can you help me find something?\n  [tool] search_products({\"query\": \"lightweight laptop\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 1000, \"min_rating\": 0, \"in_stock_only\": true, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-1002\", \"name\": \"ProBook Laptop 13-inch\", \"brand\": \"ProBook\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"price\": 999, \"rating\": 4.6, \"review_count\": 2180, \"in_stock\": true}, {\"product_id\": \"SP-1001\", \"name\": \"SlimBook Air 13\", \"brand\": \"SlimBook\", \"category\"...\n  [tool] get_product_details({\"product_id\": \"SP-1002\"}) -> {\"product_id\": \"SP-1002\", \"name\": \"ProBook Laptop 13-inch\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"ProBook\", \"price\": 999, \"rating\": 4.6, \"review_count\": 2180, \"description\": \"13-inch everyday laptop with strong battery and solid performance for schoolwork.\", \"specs\": {\"weight...\n  [tool] get_product_details({\"product_id\": \"SP-1001\"}) -> {\"product_id\": \"SP-1001\", \"name\": \"SlimBook Air 13\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"SlimBook\", \"price\": 849, \"rating\": 4.5, \"review_count\": 1240, \"description\": \"Lightweight 13-inch laptop built for students. All-day battery and durable chassis.\", \"specs\": {\"weight_lb\"...\n  [tool] get_product_details({\"product_id\": \"SP-1003\"}) -> {\"product_id\": \"SP-1003\", \"name\": \"SlateTab Studyline 14\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"SlateTab\", \"price\": 749, \"rating\": 4.3, \"review_count\": 640, \"description\": \"Budget 14-inch laptop aimed at students. Good battery; basic build.\", \"specs\": {\"weight_lb\": 3.2, \"bat...\n  [tool] get_product_details({\"product_id\": \"SP-1106\"}) -> {\"product_id\": \"SP-1106\", \"name\": \"ProBook Chromebook 11\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"ProBook\", \"price\": 329, \"rating\": 3.9, \"review_count\": 530, \"description\": \"Ultraportable 11-inch Chromebook. Great for browsing; limited for full coursework.\", \"specs\": {\"weight_...\nAgent: Absolutely — based on your budget and portability-first priority, these are the best laptop options I found under $1,000:\n\n### Best fit for portability\n**SlimBook Air 13 — $849**\n- **Weight:** 2.6 lb\n- **Battery:** 14 hours\n- **RAM / Storage:** 8GB / 256GB SSD\n- **Rating:** 4.5 ★\n- Good student-focused option if you want something light and easy to carry all day.\n\n### Best performance at your budget ceiling\n**ProBook Laptop 13-inch — $999**\n- **Weight:** 2.9 lb\n- **Battery:** 12 hours\n- **RAM / Storage:** 16GB / 512GB SSD\n- **Rating:** 4.6 ★\n- Best choice if you want more headroom for multitasking and heavier coursework while still staying portable.\n\n### Best value pick\n**SlateTab Studyline 14 — $749**\n- **Weight:** 3.2 lb\n- **Battery:** 11 hours\n- **RAM / Storage:** 8GB / 256GB SSD\n- **Rating:** 4.3 ★\n- Cheapest “full” laptop option here, but it’s a bit larger and less portable.\n\n### Ultra-budget option, but with limitations\n**ProBook Chromebook 11 — $329**\n- **Weight:** 2.2 lb\n- **Battery:** 10 hours\n- **RAM / Storage:** 4GB / 64GB\n- **Rating:** 3.9 ★\n- Very portable, but probably too limited if your classes require more than web-based work.\n\n## My recommendation\nFor most college students:\n- **Choose the SlimBook Air 13** if portability is your top concern.\n- **Choose the ProBook 13-inch** if you want a stronger, more future-proof laptop and can stretch to the full $1,000.\n\nIf you want, I can also:\n1. **Compare the top 2 side-by-side**\n2. **Check for any active promotions**\n3. **Add one to your cart**\nCustomer: I’m leaning toward the **ProBook Laptop 13-inch** — is that the lightest option?\nAgent: Not quite.\n\nAmong the options I found:\n- **ProBook Laptop 13-inch:** **2.9 lb**\n- **SlimBook Air 13:** **2.6 lb**\n- **ProBook Chromebook 11:** **2.2 lb**\n\nSo:\n- **The Chromebook is the lightest overall**\n- **The SlimBook Air 13 is the lightest “full” laptop I’d recommend for typical college use**\n- **The ProBook 13-inch is still portable, just not the lightest**\n\nWhy you might still pick the **ProBook 13-inch**:\n- much better specs than the SlimBook\n- **16GB RAM / 512GB SSD**\n- better for multitasking and longer-term use in college\n\nIf portability matters most, I’d frame it like this:\n- **Best portability:** SlimBook Air 13\n- **Best balance of portability + performance:** ProBook Laptop 13-inch\n\nWant me to do a quick **SlimBook Air 13 vs ProBook 13-inch** side-by-side?\nCustomer: Got it — thanks for clarifying. Since portability is my top priority, I’ll go with the **SlimBook Air 13**. Could you add that one to my cart?\nAgent: Absolutely — before I add it, would you like **gift wrap** for the SlimBook Air 13?\n\n- **No gift wrap**\n- **Gift wrap for $5**\nCustomer: No gift wrap, please.\n  [tool] add_to_cart({\"customer_id\": \"shop_002\", \"product_id\": \"SP-1001\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"added\", \"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-1001\", \"product_name\": \"SlimBook Air 13\", \"variant_id\": null, \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 849, \"cart_subtotal\": 849, \"cart_total\": 849}\nAgent: Done — **SlimBook Air 13** has been added to your cart.\n\n**Cart total:** **$849**\n\nIf you want, I can also:\n- check whether any **promotions** apply\n- show your **cart**\n- help you find a **laptop sleeve, backpack, or mouse** to go with it\nCustomer: [TASK_DONE]",
+              "Past conversation (104-hard_variant_laptop_ram_price_delta):\nCustomer: Add the SlimBook with the higher-memory option, but I want to know if it changes the price first.\n  [tool] search_products({\"query\": \"SlimBook\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 10000, \"min_rating\": 0, \"in_stock_only\": true, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-H101\", \"name\": \"SlimBook Air 13\", \"brand\": \"Northstar\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"price\": 849, \"rating\": 4.6, \"review_count\": 1400, \"in_stock\": true}], \"total_found\": 1}\n  [tool] get_variants({\"product_id\": \"SP-H101\"}) -> {\"product_id\": \"SP-H101\", \"product_name\": \"SlimBook Air 13\", \"base_price\": 849, \"variants\": [], \"note\": \"This product has no variants; no variant_id is needed for add_to_cart.\"}\n  [tool] get_product_details({\"product_id\": \"SP-H101\"}) -> {\"product_id\": \"SP-H101\", \"name\": \"SlimBook Air 13\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"Northstar\", \"price\": 849, \"rating\": 4.6, \"review_count\": 1400, \"description\": \"SlimBook Air 13 from Northstar.\", \"specs\": {\"weight_lb\": 2.6, \"ram_gb\": 8, \"battery_hours\": 12}, \"compatib...\nAgent: I checked the SlimBook Air 13.\n\n- Price: $849\n- Memory listed: 8 GB RAM\n- Variant options: none\n\nSo there isn’t a higher-memory option for this model in the catalog, which means the price does not change because no RAM upgrade is available.\n\nIf you want, I can add the standard SlimBook Air 13 at $849 to your cart.\nCustomer: Yes, please add the standard SlimBook Air 13 at $849 to my cart.\n  [tool] add_to_cart({\"customer_id\": \"shop_003\", \"product_id\": \"SP-H101\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"added\", \"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-H101\", \"product_name\": \"SlimBook Air 13\", \"variant_id\": null, \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 849, \"cart_subtotal\": 849, \"cart_total\": 849}\nAgent: Done — I added 1 × SlimBook Air 13 to your cart.\n\n- Unit price: $849\n- Gift wrap: No\n- Cart total: $849\n\nIf you want, I can also check for any eligible promo codes.\nCustomer: [TASK_DONE]",
+              "Past conversation (81-pre_purchase_comparison_no_write):\nCustomer: Quick question — how does the SlimBook Air 13 compare to the ProBook 13 on price and specs? I'm deciding between them but not ready to buy yet.\n  [tool] search_products({\"query\": \"SlimBook Air 13 ProBook 13\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 10000, \"min_rating\": 0, \"in_stock_only\": false, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-1001\", \"name\": \"SlimBook Air 13\", \"brand\": \"SlimBook\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"price\": 849, \"rating\": 4.5, \"review_count\": 1240, \"in_stock\": true}, {\"product_id\": \"SP-1104\", \"name\": \"SlimBook Air 13 (Previous Gen)\", \"brand\": \"SlimBook\", \"...\n  [tool] get_product_details({\"product_id\": \"SP-1001\"}) -> {\"product_id\": \"SP-1001\", \"name\": \"SlimBook Air 13\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"SlimBook\", \"price\": 849, \"rating\": 4.5, \"review_count\": 1240, \"description\": \"Lightweight 13-inch laptop built for students. All-day battery and durable chassis.\", \"specs\": {\"weight_lb\"...\n  [tool] get_product_details({\"product_id\": \"SP-1002\"}) -> {\"product_id\": \"SP-1002\", \"name\": \"ProBook Laptop 13-inch\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"ProBook\", \"price\": 999, \"rating\": 4.6, \"review_count\": 2180, \"description\": \"13-inch everyday laptop with strong battery and solid performance for schoolwork.\", \"specs\": {\"weight...\nAgent: Here’s a quick side-by-side:\n\n| Model | Price | RAM | Storage | Battery | Weight | Rating |\n|---|---:|---|---|---:|---:|---:|\n| **SlimBook Air 13** | **$849** | 8GB | 256GB SSD | **14 hrs** | **2.6 lb** | 4.5/5 |\n| **ProBook 13-inch** | **$999** | **16GB** | **512GB SSD** | 12 hrs | 2.9 lb | **4.6/5** |\n\n### Main differences\n- **SlimBook Air 13**\n  - **$150 cheaper**\n  - Lighter\n  - Longer battery life\n  - Lower memory and storage\n\n- **ProBook 13-inch**\n  - More expensive\n  - More RAM and SSD space\n  - Slightly heavier\n  - Slightly shorter battery life\n  - Slightly higher rating\n\n### Simple takeaway\n- Choose **SlimBook Air 13** if you want **better value, lower weight, and longer battery life**.\n- Choose **ProBook 13-inch** if you want **stronger specs and more headroom** for multitasking and storage.\n\nIf you want, I can also give you a **“best for students / best for multitasking / best value”** recommendation.\nCustomer: Would the cheaper one be enough for typical college use? I might go with that if so, but I’m just looking for info right now and don’t want anything added to my cart.\nAgent: Yes — for **typical college use**, the **SlimBook Air 13** should be enough.\n\nIt has:\n- **8GB RAM**\n- **256GB SSD**\n- **14-hour battery**\n- **Light 2.6 lb design**\n\nThat’s generally fine for:\n- web browsing\n- note-taking\n- Google Docs / Word / PowerPoint\n- streaming\n- video calls\n- most school portals and research tabs\n\n### When it’s a good pick\nThe cheaper one makes sense if your work is mostly:\n- essays and presentations\n- general classwork\n- online lectures\n- light multitasking\n\n### When you might want the ProBook instead\nYou may appreciate the **ProBook 13** if you expect to do heavier work like:\n- lots of multitasking with many tabs/apps open\n- programming with heavier tools\n- large datasets\n- photo/video editing\n- keeping a lot of files locally\n\nIts **16GB RAM** and **512GB SSD** give it more long-term breathing room.\n\n### Bottom line\nFor a lot of students, **the SlimBook Air 13 is the better value** and should handle normal college needs well.  \nIf your major or workflow is more demanding, the **ProBook 13** is the safer upgrade.\n\nAnd no worries — **I’m not adding anything to your cart**. If you want, I can also help you think through it by **major/use case**.\nCustomer: Thanks, that helps. I’ll think about it and come back later. [TASK_DONE]"
+            ]
+          }
+        },
+        {
+          "name": "search_products",
+          "arguments": {
+            "query": "SlimBook Air 13",
+            "category": "electronics"
+          },
+          "result": {
+            "products": [
+              {
+                "product_id": "SP-1001",
+                "name": "SlimBook Air 13",
+                "brand": "SlimBook",
+                "category": "electronics",
+                "subcategory": "laptop",
+                "price": 849,
+                "rating": 4.5,
+                "review_count": 1240,
+                "in_stock": true
+              },
+              {
+                "product_id": "SP-1104",
+                "name": "SlimBook Air 13 (Previous Gen)",
+                "brand": "SlimBook",
+                "category": "electronics",
+                "subcategory": "laptop",
+                "price": 699,
+                "rating": 4.4,
+                "review_count": 3200,
+                "in_stock": false
+              },
+              {
+                "product_id": "SP-1107",
+                "name": "SlimBook Touch 15",
+                "brand": "SlimBook",
+                "category": "electronics",
+                "subcategory": "laptop",
+                "price": 1099,
+                "rating": 4.5,
+                "review_count": 410,
+                "in_stock": true
+              },
+              {
+                "product_id": "SP-1002",
+                "name": "ProBook Laptop 13-inch",
+                "brand": "ProBook",
+                "category": "electronics",
+                "subcategory": "laptop",
+                "price": 999,
+                "rating": 4.6,
+                "review_count": 2180,
+                "in_stock": true
+              }
+            ],
+            "total_found": 4
+          }
+        },
+        {
+          "name": "get_variants",
+          "arguments": {
+            "product_id": "SP-1001"
+          },
+          "result": {
+            "product_id": "SP-1001",
+            "product_name": "SlimBook Air 13",
+            "base_price": 849,
+            "variants": [
+              {
+                "variant_id": "8gb",
+                "label": "8GB RAM (base)",
+                "effective_price": 849,
+                "in_stock": true,
+                "stock_quantity": 30
+              },
+              {
+                "variant_id": "16gb",
+                "label": "16GB RAM",
+                "effective_price": 999,
+                "in_stock": true,
+                "stock_quantity": 15
+              },
+              {
+                "variant_id": "32gb",
+                "label": "32GB RAM",
+                "effective_price": 1199,
+                "in_stock": true,
+                "stock_quantity": 5
+              }
+            ]
+          }
+        },
+        {
+          "name": "add_to_cart",
+          "arguments": {
+            "customer_id": "shop_003",
+            "product_id": "SP-1001",
+            "quantity": 1,
+            "variant_id": "16gb"
+          },
+          "result": {
+            "status": "added",
+            "cart_item_id": "CI-0001",
+            "product_id": "SP-1001",
+            "product_name": "SlimBook Air 13",
+            "variant_id": "16gb",
+            "quantity": 1,
+            "gift_wrap": false,
+            "unit_price": 999,
+            "cart_subtotal": 999,
+            "cart_total": 999
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Okay, thanks. [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "70a546fce5108cb4381c6c6c6ea0adccd6e3d91b99b90a14f1c09d1b1f2bc5fc",
+  "agent_name": "OpenCodeTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "ag_seed": null,
+    "training_lookup": true,
+    "session": "ses_e32a3b96bffeDExRPZrtD7jQ3R",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 1,
+    "model_calls": 5
+  },
+  "token_usage": {
+    "input_tokens": 26984,
+    "cached_input_tokens": 20500,
+    "output_tokens": 181,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 27165,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.020062500000000004,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.020062500000000004
+  },
+  "input_tokens": 26984,
+  "cached_input_tokens": 20500,
+  "output_tokens": 181,
+  "reasoning_output_tokens": 0,
+  "total_tokens": 27165,
+  "cost_usd": 0.020062500000000004,
+  "state_diff": {
+    "created": {
+      "cart_items": {
+        "CI-0001": {
+          "cart_item_id": "CI-0001",
+          "customer_id": "shop_003",
+          "product_id": "SP-1001",
+          "quantity": 1,
+          "gift_wrap": false,
+          "variant_id": "16gb"
+        }
+      }
+    },
+    "modified": {
+      "carts": {
+        "CART-shop_003": {
+          "item_ids": {
+            "old": [],
+            "new": [
+              "CI-0001"
+            ]
+          },
+          "subtotal": {
+            "old": 0,
+            "new": 999
+          },
+          "total": {
+            "old": 0,
+            "new": 999
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_003",
+      "field": "subtotal",
+      "expected_value": 999
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_003",
+      "field": "total",
+      "expected_value": 999
+    },
+    {
+      "entity_type": "cart_items",
+      "match_fields": {
+        "customer_id": "shop_003",
+        "product_id": "SP-1001",
+        "variant_id": "16gb",
+        "gift_wrap": false,
+        "quantity": 1
+      },
+      "expected_fields": {}
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 3,
+  "ux_response_density": 3,
+  "ux_base_score": 2.5,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 1,
+  "ux_tool_call_count": 4,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "558947b2ce0b5d90a633e7d44e8599c329a96ac5ed9e43c9d37ffb5e6cf3c055",
+    "judge_ux_quality.md": "0234643a8dcf766c390aff2dc11b2f74f0e13ef7a38b29df70165bd333b82656",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

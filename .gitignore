@@ -81,3 +81,7 @@ debug/
 third_party/
 _RESULTS.md
 .dump/
+
+# Experiments: results are shared, but not run logs or ag's memory folders (too large)
+experiments/**/*.log
+experiments/*/ag_home*/

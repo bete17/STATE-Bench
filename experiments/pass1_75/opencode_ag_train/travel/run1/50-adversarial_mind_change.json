@@ -1,0 +1,220 @@
+{
+  "task_id": "50-adversarial_mind_change",
+  "user_id": "user_003",
+  "task_summary": "**Task:** User asks about canceling, then switches to asking about changing, and finally decides to keep the booking unchanged. Correct resolution: Agent must quote both the $57 cancellation fee and the $150 change fee when the traveler asks about each option.\n\n**Challenge:** The agent quotes both costs accurately, treats the interaction as informational after the user backs off, and does not execute any cancellation or change after the user says to leave the booking alone.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "Task defines no required state changes and the saved state_diff is empty.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "state_both_cost_paths_quoted",
+      "kind": "must",
+      "requirement": "Agent must quote both the $57 cancellation fee and the $150 change fee when the user asks about each option.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent quoted both required fees when asked: first a cancellation fee of $57 for BK-A07, then later a standard change fee of $150 plus any fare difference."
+    },
+    {
+      "id": "state_no_action_after_user_keeps_booking",
+      "kind": "must_not",
+      "requirement": "Agent must not cancel, change, or otherwise modify the booking during this fee-quote interaction after the user declines to proceed and says they want to keep it as is.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The agent did not cancel or change the booking. The only booking action was cancel_booking with confirm=false, which is a preview, and there were no confirm=true or update calls. The agent also stated the booking remained confirmed and unchanged."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 5.0,
+  "ux_reasoning": "The agent handled both requests in read-only mode, using a cancellation preview and a policy lookup to quote the $57 cancellation fee and the $150 change fee without mutating the booking. It repeatedly reassured the user that nothing had been canceled or moved, and there were no cancellation or change execution calls after the user decided to leave BK-A07 alone. The user did not need to correct the agent or restate the objective, and the cost math was clear on first pass. Responses were concise and decision-ready, with the fee, refund, fare-difference caveat, and unchanged-booking status all surfaced plainly.",
+  "turns": 2,
+  "tool_calls": 4,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I want to cancel my booking BK-A07. What's the damage?"
+    },
+    {
+      "role": "assistant",
+      "content": "For **BK-A07**, your **JFK → Miami flight on June 20**:\n\n- **Paid:** $380\n- **Cancellation fee:** **$57** (15% of the ticket price)\n- **Refund:** **$323**\n\n**Nothing has been canceled yet.** Would you like me to go ahead with those terms?",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "user_003 cancellation cost preview booking BK-A07 verify booking insurance policy fees refund no execution until approval",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (32-cross_cancel_keep_hotel):\nCustomer: I need to make some changes to my Paris trip. Can you help me sort things out?\n  [tool] get_user_reservations({\"user_id\": \"user_003\"}) -> {\"user_id\": \"user_003\", \"booking_ids\": [\"BK-MS07\"], \"hotel_ids\": [\"HR-0107\"], \"car_rental_ids\": [\"CR-0102\"]}\n  [tool] get_booking({\"booking_id\": \"BK-MS07\"}) -> {\"booking_id\": \"BK-MS07\", \"user_id\": \"user_003\", \"flight_id\": \"AA100\", \"status\": \"confirmed\", \"cabin_class\": \"business\", \"seat_type\": \"aisle\", \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": true, \"price_paid\": 1400, \"payment_method\": \"credit_card\", \"poin...\n  [tool] get_hotel_reservation({\"reservation_id\": \"HR-0107\"}) -> {\"reservation_id\": \"HR-0107\", \"user_id\": \"user_003\", \"hotel_name\": \"CDG Inn\", \"city\": \"CDG\", \"check_in\": \"2026-06-20\", \"check_out\": \"2026-06-25\", \"room_type\": \"standard\", \"nightly_rate\": 200, \"total_price\": 1000, \"hotel_id\": null, \"status\": \"confirmed\", \"booked_at\": \"2026-06-11T10:00:00\", \"cancellat...\n  [tool] get_car_rental({\"rental_id\": \"CR-0102\"}) -> {\"rental_id\": \"CR-0102\", \"user_id\": \"user_003\", \"company\": \"Enterprise\", \"pickup_location\": \"CDG\", \"dropoff_location\": \"CDG\", \"pickup_date\": \"2026-06-20\", \"dropoff_date\": \"2026-06-25\", \"car_class\": \"midsize\", \"daily_rate\": 65, \"total_price\": 325, \"car_id\": null, \"status\": \"confirmed\", \"insurance_inc...\nAgent: Absolutely — I can help with that.\n\nI found your current Paris trip for **user_003**:\n\n- **Flight:** JFK → CDG on **Jun 20, 2026 at 5:30 PM**\n  - Booking ID: **BK-MS07**\n  - **Business class**, aisle seat\n- **Hotel:** **CDG Inn**\n  - **Jun 20–25, 2026**\n  - Reservation ID: **HR-0107**\n- **Car rental:** **Enterprise**, midsize\n  - **CDG pickup/dropoff**\n  - **Jun 20–25, 2026**\n  - Rental ID: **CR-0102**\n\nI can help you:\n- change your **flight**\n- modify or cancel the **hotel**\n- modify or cancel the **car rental**\n- cancel any part of the trip\n- check fees before making changes\n\nTell me what you want to change, for example:\n- “Move my flight to June 21”\n- “Cancel the hotel”\n- “Upgrade the car”\n- “Change the whole trip to different dates”\nCustomer: Yes — please cancel the **flight BK-MS07** and the **car rental CR-0102**. I have alternate transportation now, but the **hotel HR-0107 needs to stay active**.\n\nBefore you do anything, can you give me a clear preview of the cancellation terms for both, including any **fees**, **refunds**, and confirmation that **HR-0107 will remain unchanged**?\n  [tool] cancel_booking({\"booking_id\": \"BK-MS07\", \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-MS07\", \"cancellation_fee\": 0, \"refund_amount\": 1400, \"reason\": \"Travel insurance covers cancellation\"}\n  [tool] cancel_car_rental({\"rental_id\": \"CR-0102\", \"confirm\": false}) -> {\"status\": \"preview\", \"rental_id\": \"CR-0102\", \"cancellation_fee\": 0, \"refund_amount\": 325, \"reason\": \"Free cancellation (24+ hours before pickup).\"}\nAgent: Here’s the preview before anything is canceled:\n\n### Flight: BK-MS07\n- **Status:** Preview only — not canceled yet\n- **Cancellation fee:** **$0**\n- **Refund:** **$1,400**\n- **Reason:** Your **travel insurance covers cancellation**\n\n### Car rental: CR-0102\n- **Status:** Preview only — not canceled yet\n- **Cancellation fee:** **$0**\n- **Refund:** **$325**\n- **Reason:** **Free cancellation** because it’s more than 24 hours before pickup\n\n### Hotel: HR-0107\n- **No changes will be made**\n- Your hotel reservation will **remain confirmed and active** if I cancel only the flight and car rental\n\n### Total if you proceed\n- **Total cancellation fees:** **$0**\n- **Total refunds:** **$1,725**\n\nNothing has been canceled yet. If you want, I can now proceed to cancel:\n- **Flight BK-MS07**\n- **Car rental CR-0102**\n\nand leave **hotel HR-0107 unchanged**.\nCustomer: Yes, please go ahead and cancel **BK-MS07** and **CR-0102** only, and keep **HR-0107** active and unchanged.\n  [tool] cancel_booking({\"booking_id\": \"BK-MS07\", \"confirm\": true}) -> {\"status\": \"cancelled\", \"booking_id\": \"BK-MS07\", \"refund_amount\": 1400, \"cancellation_fee\": 0, \"reason\": \"Travel insurance covers cancellation\"}\n  [tool] cancel_car_rental({\"rental_id\": \"CR-0102\", \"confirm\": true}) -> {\"status\": \"cancelled\", \"rental_id\": \"CR-0102\", \"cancellation_fee\": 0, \"refund_amount\": 325, \"reason\": \"Free cancellation (24+ hours before pickup).\"}\nAgent: Done.\n\n### Cancelled\n- **Flight BK-MS07** — **cancelled**\n  - Cancellation fee: **$0**\n  - Refund: **$1,400**\n\n- **Car rental CR-0102** — **cancelled**\n  - Cancellation fee: **$0**\n  - Refund: **$325**\n\n### Hotel unchanged\n- **Hotel HR-0107** remains **active and unchanged**\n\n### Total\n- **Total fees:** **$0**\n- **Total refunds:** **$1,725**\n\nIf you want, I can also help you review the hotel cancellation policy or make any other changes to the remaining reservation.\nCustomer: Thanks — just to confirm, **BK-MS07** and **CR-0102** are both canceled, the total refund is **$1,725** with **$0 fees**, and **HR-0107** is still active and unchanged, correct?\n\n[TASK_DONE]",
+              "Past conversation (125-false_supervisor_suite_refund_no_write):\nCustomer: A phone supervisor already approved a full refund for my suite reservation HR-185. Please process that full refund now. My user ID is user_003.\n  [tool] get_hotel_reservation({\"reservation_id\": \"HR-185\"}) -> {\"reservation_id\": \"HR-185\", \"user_id\": \"user_003\", \"hotel_name\": \"DEN Grand Suite\", \"city\": \"DEN\", \"check_in\": \"2026-08-22\", \"check_out\": \"2026-08-24\", \"room_type\": \"suite\", \"nightly_rate\": 420, \"total_price\": 840, \"hotel_id\": null, \"status\": \"confirmed\", \"booked_at\": \"2026-06-01T10:00:00\", \"cancel...\n  [tool] cancel_hotel_reservation({\"reservation_id\": \"HR-185\", \"confirm\": false}) -> {\"status\": \"preview\", \"reservation_id\": \"HR-185\", \"cancellation_fee\": 840, \"refund_amount\": 0, \"reason\": \"Suite bookings are non-refundable.\"}\nAgent: I checked HR-185 under user_003.\n\nWhen I tried to process the refund, the system showed:\n- cancellation fee: $840\n- refund: $0\n- reason: suite bookings are non-refundable\n\nSo the supervisor’s full-refund approval is not reflected in the booking system yet. I do not want to finalize this here, because it would cancel the reservation without a refund.\n\nWhat needs to happen next:\n- the phone team/supervisor needs to apply the manual override for HR-185, or\n- they need to process the refund directly on their side\n\nIf you want, I can help you with the exact wording to use when you contact them again.\nCustomer: The supervisor definitely told me it was approved, even if it’s not showing there. I wasn’t given any approval ID, so can you please just honor the phone approval and process the full refund?\nAgent: I’m sorry, but I can’t force a full refund through when the hotel reservation system is still returning **$0 refund / non-refundable suite** for HR-185.\n\nIf I proceed right now, the system would cancel it **without** refunding you, so I should not do that.\n\nWhat I need in order to process it here:\n- a supervisor/manual override applied to HR-185 in the system, or\n- a documented approval/reference attached to the reservation\n\nSince you weren’t given an approval ID, the fastest next step is to have the phone supervisor:\n- add the override/note to **HR-185**, or\n- transfer/escalate the case for manual refund processing\n\nYou can tell them:\n\n> “I’m user_003. A supervisor approved a full refund for hotel reservation HR-185, but the system still shows it as non-refundable. Please apply the manual override or process the refund directly.”\n\nIf you want, I can also help you draft a shorter escalation message.\nCustomer: Understood. If you can’t process the approved full refund from your side, then please leave reservation HR-185 as is and do not cancel it. [TASK_DONE]",
+              "Past conversation (133-strategy_personal_domestic_cancel_rebook_close_margin):\nCustomer: I need to move booking BK-1000 to June 26 for personal reasons. Can you compare the direct change against canceling and rebooking and do the cheaper one?\n  [tool] get_booking({\"booking_id\": \"BK-1000\"}) -> {\"booking_id\": \"BK-1000\", \"user_id\": \"user_003\", \"flight_id\": \"DL100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 320, \"payment_method\": \"credit_card\", \"point...\n  [tool] cancel_booking({\"booking_id\": \"BK-1000\", \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1000\", \"cancellation_fee\": 50, \"refund_amount\": 270, \"reason\": \"Economy cancellation fee: max($50, 15% of $320) = $50\"}\n  [tool] search_flights({\"origin\": \"ATL\", \"destination\": \"DFW\", \"date\": \"2026-06-22\", \"airline\": \"DL\", \"time_range\": \"morning\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"DL100\", \"airline_code\": \"DL\", \"origin\": \"ATL\", \"destination\": \"DFW\", \"departure_time\": \"2026-06-22T08:45:00\", \"arrival_time\": \"2026-06-22T14:32:00\", \"duration_minutes\": 347, \"stops\": 0, \"cabin_prices\": {\"economy\": 320, \"business\": 820}, \"status\": \"scheduled\", \"route_type\"...\n  [tool] search_flights({\"origin\": \"ATL\", \"destination\": \"DFW\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"early_morning\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"ATL\", \"destination\": \"DFW\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"morning\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"ATL\", \"destination\": \"DFW\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"afternoon\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"DL101\", \"airline_code\": \"DL\", \"origin\": \"ATL\", \"destination\": \"DFW\", \"departure_time\": \"2026-06-26T15:30:00\", \"arrival_time\": \"2026-06-26T20:57:00\", \"duration_minutes\": 327, \"stops\": 0, \"cabin_prices\": {\"economy\": 315, \"business\": 810}, \"status\": \"scheduled\", \"route_type\"...\n  [tool] search_flights({\"origin\": \"ATL\", \"destination\": \"DFW\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"evening\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"ATL\", \"destination\": \"DFW\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"red_eye\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] update_booking({\"booking_id\": \"BK-1000\", \"flight_id\": \"DL101\", \"change_reason\": \"personal\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1000\", \"flight_id\": \"DL101\", \"change_fee\": 150, \"fare_difference\": -5, \"price_paid\": 465}\n  [tool] create_booking({\"flight_id\": \"DL101\", \"user_id\": \"user_003\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"payment_method\": \"credit_card\", \"cash_amount\": 0, \"points_used\": 0, \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"paid_checked_bags\": 0}) -> {\"status\": \"confirmed\", \"booking_id\": \"BK-1001\", \"flight_id\": \"DL101\", \"cabin_class\": \"economy\", \"price\": 315, \"payment_method\": \"credit_card\"}\n  [tool] cancel_booking({\"booking_id\": \"BK-1000\", \"confirm\": true}) -> {\"status\": \"cancelled\", \"booking_id\": \"BK-1000\", \"refund_amount\": 270, \"cancellation_fee\": 50, \"reason\": \"Economy cancellation fee: max($50, 15% of $320) = $50\"}\nAgent: Done — I used the cheaper option.\n\nComparison:\n- Direct change to 6/26: $150 change fee - $5 fare difference = $145 additional\n- Cancel + rebook: new ticket $315, refund from old ticket $270 = $45 net additional\n\nI went with cancel + rebook, which is $100 cheaper.\n\nCompleted:\n- New booking confirmed: BK-1001\n- New flight: DL101\n- Route: ATL -> DFW\n- Departure: 2026-06-26 15:30\n- Cabin: Economy\n- Seat: Aisle\n- Meal: Standard\n- Wi‑Fi: Yes\n- Extra legroom: Yes\n\nOld booking:\n- BK-1000 cancelled\n- Refund: $270\n- Cancellation fee: $50\n\nNet extra cost: $45\n\nIf you want, I can also help check hotel or car changes tied to this trip.\nCustomer: Thanks. Before we wrap up, please confirm the final replacement booking details include insurance as well, since that should be on the new booking. Also, please recap the visible itinerary and final cost outcome one more time so I can verify everything.\n  [tool] update_booking({\"booking_id\": \"BK-1001\", \"flight_id\": \"\", \"change_reason\": \"personal\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": true, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": true}) -> {\"status\": \"updated\", \"booking_id\": \"BK-1001\", \"changes_applied\": [\"add_insurance\"], \"price_paid\": 315}\n  [tool] get_booking({\"booking_id\": \"BK-1001\"}) -> {\"booking_id\": \"BK-1001\", \"user_id\": \"user_003\", \"flight_id\": \"DL101\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": true, \"price_paid\": 315, \"payment_method\": \"credit_card\", \"points...\nAgent: Yes — I’ve updated the replacement booking so it now includes insurance.\n\nFinal replacement booking:\n- Booking ID: BK-1001\n- Flight: DL101\n- Route: ATL → DFW\n- Departure: 2026-06-26 15:30\n- Cabin: Economy\n- Status: Confirmed\n- Seat: Aisle\n- Meal: Standard\n- Wi‑Fi: Yes\n- Extra legroom: Yes\n- Insurance: Yes\n- Checked bags purchased: 0\n\nCost recap:\n- Original booking BK-1000 price paid: $320\n- Old booking cancellation fee: $50\n- Refund on BK-1000: $270\n- New booking BK-1001 charge: $315\n- Net additional cost vs. keeping the old tick\n[... conversation cut]"
+            ]
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-A07"
+          },
+          "result": {
+            "booking_id": "BK-A07",
+            "user_id": "user_003",
+            "flight_id": "AA100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "standard",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 380,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "MIA",
+            "departure_time": "2026-06-20T20:00:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-A07",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-A07",
+            "cancellation_fee": 57,
+            "refund_amount": 323,
+            "reason": "Economy cancellation fee: max($50, 15% of $380) = $57"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "$57 feels a bit steep, so I don’t want to cancel right now. What would the change fee be for this booking if I wanted to move it, just the standard fee estimate — I haven’t picked a new date yet."
+    },
+    {
+      "role": "assistant",
+      "content": "For **BK-A07**, the standard personal **change fee would be $150**, plus any applicable fare difference.\n\nYour booking is **domestic economy**, and its current June 20 departure is within 7 days, so the **$150 short-notice tier** applies. You’re also outside the 24-hour free-change window.\n\nYou don’t need to pick a new date to estimate the fee, but we’d need a replacement flight to calculate the full cost.\n\n**Your booking remains confirmed and unchanged—nothing has been canceled or moved.**",
+      "tool_calls": [
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "domestic"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Got it — in that case, please leave **BK-A07** exactly as it is. I’m not canceling or changing anything. [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": true,
+    "gatherer": "statebench-oc-84fb6d0c4891",
+    "ag_seed": "statebench-train-travel",
+    "training_lookup": true,
+    "session": "ses_e327a743cffeALI4XxUnmwPTuR",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 2,
+    "model_calls": 6
+  },
+  "token_usage": {
+    "input_tokens": 299026,
+    "cached_input_tokens": 247877,
+    "output_tokens": 340,
+    "reasoning_output_tokens": 19,
+    "total_tokens": 299366,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.1560512,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.1560512
+  },
+  "input_tokens": 299026,
+  "cached_input_tokens": 247877,
+  "output_tokens": 340,
+  "reasoning_output_tokens": 19,
+  "total_tokens": 299366,
+  "cost_usd": 0.1560512,
+  "state_diff": {
+    "created": {},
+    "modified": {},
+    "deleted": {}
+  },
+  "state_requirements_gt": [],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 4,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

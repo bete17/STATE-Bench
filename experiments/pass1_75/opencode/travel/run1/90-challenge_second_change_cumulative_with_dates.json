@@ -1,0 +1,373 @@
+{
+  "task_id": "90-challenge_second_change_cumulative_with_dates",
+  "user_id": "user_001",
+  "task_summary": "**Task:** A traveler is changing a booking for the second time and asks both about the new fee and the cumulative fees paid across both changes. Correct resolution: The second change fee for the booking is $75.\n\n**Challenge:** The agent uses the current booking’s departure timing for the second-change fee, keeps cumulative fee accounting straight, and does not reuse the earlier fee window incorrectly.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "state_second_change_fee",
+      "kind": "must",
+      "requirement": "Agent must explain that the second change fee for this booking is $75.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly stated twice that the second change fee is $75, including in direct response to the user's confirmation question."
+    },
+    {
+      "id": "state_cumulative_fees",
+      "kind": "must",
+      "requirement": "Agent must explain that the cumulative change fees paid across the first and second changes total $225.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly confirmed cumulative change fees of $225, breaking it down as $150 previously paid plus $75 for the second change."
+    },
+    {
+      "id": "state_current_departure_basis",
+      "kind": "must",
+      "requirement": "Agent must explain or clearly imply that the second-change fee is based on the current booked departure timing rather than on the older pre-change itinerary date.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent clearly said the $75 fee is based on the currently booked June 24 departure, not the original pre-change itinerary, satisfying the required policy basis explanation."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.75,
+  "ux_reasoning": "The agent kept the initial interaction read-only, used a safe preview (`confirm=false`), explicitly said no changes had been made, and only executed the booking change after the user approved in a later turn. It correctly handled the key travel logic: the second change fee was $75, cumulative change fees were $225, and the fee basis was the current booked June 24 departure rather than the original itinerary. The user did not need to correct or re-steer anything material, and the agent preserved and later verified the booking preferences cleanly. The only notable imperfection is response density: one confirmation introduced an unsupported-sounding \"as of June 15\" reference and included a bit more detail than the original fee-only question required.",
+  "turns": 4,
+  "tool_calls": 6,
+  "tool_errors": 0,
+  "redundant_calls": 1,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I already changed my flight BK-1000 once before. Now I need to change it again to June 28.  What will the fee be for this second change? My user ID is user_001."
+    },
+    {
+      "role": "assistant",
+      "content": "The fee for this second change is **$75**, plus a **$10 fare difference** for the June 28 United flight departing ORD for DEN at noon—**$85 total additional cost**.\n\nThere’s no extra surcharge for this being your second change. Your previously charged $150 change fee is separate.\n\nI’ve only previewed the change; your booking has **not** been modified. Would you like me to proceed?",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "UA100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 500,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-01T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": 150,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "DEN",
+            "departure_time": "2026-06-24T09:45:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "DEN",
+            "date": "2026-06-28"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "UA101",
+                "airline_code": "UA",
+                "origin": "ORD",
+                "destination": "DEN",
+                "departure_time": "2026-06-28T12:00:00",
+                "arrival_time": "2026-06-28T15:09:00",
+                "duration_minutes": 189,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 360,
+                  "business": 900
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "UA101",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "UA101",
+            "change_fee": 75,
+            "fare_difference": 10,
+            "price_paid": 435
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — just to confirm, the **second-change fee is $75** and my **cumulative change fees across both changes would be $225 total**, right? Also, that $75 is based on the **current booked departure timing**, not the original pre-change itinerary?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—your **second-change fee is $75**, bringing your **cumulative change fees to $225** ($150 previously + $75 now). The separate $10 fare difference makes the additional cost for this change **$85**.\n\nThe $75 fee is based on your **currently booked June 24 departure**, not the original pre-change itinerary. As of June 15, that departure is more than seven days away, so the $75 domestic economy change fee applies.\n\nNo changes have been made.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Great, thanks for confirming. Please go ahead and change BK-1000 to June 28, and keep the existing booking preferences the same."
+    },
+    {
+      "role": "assistant",
+      "content": "Your booking **BK-1000** has been changed to **United UA101 on June 28, 2026**, departing **ORD at noon** for **DEN**.\n\nAll existing preferences remain unchanged: economy, aisle seat, kosher meal, Wi-Fi and extra legroom, with no insurance or extra checked bags.\n\nThe change incurred a **$75 fee plus a $10 fare difference—$85 total additional cost**.",
+      "tool_calls": [
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "UA101",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "paid_checked_bags": 0,
+            "confirm": true
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-1000",
+            "changes_applied": [
+              "flight_id",
+              "change_reason"
+            ],
+            "price_paid": 435,
+            "change_fee": 75,
+            "fare_difference": 10
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — just to verify one last detail: can you confirm the preserved booking-stage preferences on BK-1000 are still **economy, aisle, kosher, Wi‑Fi yes, extra legroom yes, and insurance no**? Once that’s confirmed, I’m all set."
+    },
+    {
+      "role": "assistant",
+      "content": "Confirmed—I checked **BK-1000**, and all preferences are preserved:\n\n- **Cabin:** Economy\n- **Seat:** Aisle\n- **Meal:** Kosher\n- **Wi-Fi:** Yes\n- **Extra legroom:** Yes\n- **Insurance:** No\n\nYou’re all set for June 28!",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "UA101",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 435,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-01T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": 75,
+            "fare_difference": 10,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "DEN",
+            "departure_time": "2026-06-28T12:00:00",
+            "route_type": "domestic"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 4,
+    "model_calls": 10
+  },
+  "token_usage": {
+    "input_tokens": 29835,
+    "cached_input_tokens": 29805,
+    "output_tokens": 653,
+    "reasoning_output_tokens": 15,
+    "total_tokens": 30488,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.020138000000000003,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.020138000000000003
+  },
+  "input_tokens": 29835,
+  "cached_input_tokens": 29805,
+  "output_tokens": 653,
+  "reasoning_output_tokens": 15,
+  "total_tokens": 30488,
+  "cost_usd": 0.020138000000000003,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "flight_id": {
+            "old": "UA100",
+            "new": "UA101"
+          },
+          "fare_difference": {
+            "old": null,
+            "new": 10
+          },
+          "price_paid": {
+            "old": 500,
+            "new": 435
+          },
+          "change_fee": {
+            "old": 150,
+            "new": 75
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "change_fee",
+      "expected_value": 75
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "fare_difference",
+      "expected_value": 10
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "flight_id",
+      "expected_value": "UA101"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "price_paid",
+      "expected_value": 435
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 4,
+  "ux_base_score": 4.8,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.05,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 4,
+  "ux_tool_call_count": 6,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 1,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

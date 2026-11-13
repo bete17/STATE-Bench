@@ -1,0 +1,303 @@
+{
+  "task_id": "129-hard_promo_price_drop_not_promo",
+  "user_id": "shop_004",
+  "task_summary": "**Task:** Customer shop_004 opens with: \"Before adding TechPhone Lite, explain whether the lower price is catalog pricing or a promo code. Wait for my yes before adding it.\" Relevant catalog/policy surface: TechPhone Lite 15 (SP-H105). Correct final state: Explain current-vs-previous catalog pricing, get consent, add phone, and avoid promo tools.\n\n**Challenge:** Catalog price-drop explanation must precede the add and stay out of promo workflow. Primary pitfall: Adds before explaining/consent, uses promo tools, or calls the price drop a promo code. Correct behavior: Explain current-vs-previous catalog pricing, get consent, add phone, and avoid promo tools. Novelty: Distinguishes catalog price drop from promo workflow. Family: promotions_discounts.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "disclosed_price_drop_not_promo",
+      "kind": "must",
+      "requirement": "Agent explained the lower current price/previous price distinction without calling it a promo code before the add.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "Before any add, the assistant said the TechPhone Lite 15 is '$499, down from its previous price of $549' and called it a '$50 catalog price reduction, not a promo-code discount.'"
+    },
+    {
+      "id": "got_consent_before_phone_add",
+      "kind": "must",
+      "requirement": "Agent got consent after explaining the price drop before adding TechPhone Lite.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "After the price-drop explanation, the assistant said it would wait for the user's yes. The user then replied, 'Yes, please add one TechPhone Lite,' before the later add_to_cart call."
+    },
+    {
+      "id": "added_phone_after_price_explanation",
+      "kind": "must",
+      "requirement": "Agent added TechPhone Lite after explaining the price drop as catalog pricing, without using a promo code.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The only add_to_cart call for SP-H105 occurred after the catalog-pricing explanation and after user consent. No promo code tool was used in connection with the add."
+    },
+    {
+      "id": "no_promo_workflow",
+      "kind": "must_not",
+      "requirement": "Agent did not call validate_promo, apply_promo, or claim a promo was used for the price drop.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "There were no validate_promo or apply_promo calls in this task, and the assistant consistently described the lower price as catalog pricing and stated no promo code was applied."
+    },
+    {
+      "id": "no_unsolicited_new_writes",
+      "kind": "must_not",
+      "requirement": "Agent did not call unrelated write tools such as redeem_loyalty_points or set_shipping_option unless the customer explicitly requested that workflow for this task.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The only write tool used was add_to_cart for the requested phone. There were no unrelated write calls such as redeem_loyalty_points or set_shipping_option."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.7,
+  "ux_reasoning": "The agent handled the core constraint correctly: it explained that the $499 price was a catalog price drop from $549, not a promo-code discount, and explicitly said it would wait for the user's yes before adding. It avoided promo tools entirely and only performed the cart mutation after explicit consent, then clearly summarized the final state and confirmed no promo code was applied. The only mild friction was an extra gift-wrap question after the user had already said to add the item, which added one more turn but did not force any correction or re-steering. Responses were concise, direct, and included the critical pricing and state-change details without unnecessary filler.",
+  "turns": 3,
+  "tool_calls": 4,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Before adding TechPhone Lite, explain whether the lower price is catalog pricing or a promo code. Wait for my yes before adding it."
+    },
+    {
+      "role": "assistant",
+      "content": "The **TechPhone Lite 15 is $499**, down from its previous price of **$549**—a **$50 catalog price reduction**, not a promo-code discount. The lower price is already reflected in the product listing; no code is needed.\n\nI haven’t added it or applied any promo. I’ll wait for your **yes** before adding it.",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "Explain TechPhone Lite lower price catalog price drop versus promo code verify product promotions wait for explicit yes before adding",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (118-hard_loyalty_redemption_cap_preview):\nCustomer: Before anything is redeemed, compare using 80,000 points on the ProBook versus applying SAVE10. Tell me which path the rules allow, then wait for my choice.\n  [tool] get_cart({\"customer_id\": \"shop_005\"}) -> {\"cart_id\": \"CART-shop_005\", \"customer_id\": \"shop_005\", \"items\": [], \"subtotal\": 0, \"discount_amount\": 0, \"gift_wrap_fee\": 0, \"loyalty_discount\": 0, \"loyalty_points_redeemed\": 0, \"shipping_option\": null, \"shipping_cost\": 0, \"total\": 0, \"applied_promo_codes\": []}\n  [tool] get_customer_account({\"customer_id\": \"shop_005\"}) -> {\"customer_id\": \"shop_005\", \"name\": \"Morgan Patel\", \"email\": \"morgan.patel@example.com\", \"tier\": \"platinum\", \"is_first_time\": false, \"loyalty_points\": 104000, \"purchase_history\": []}\n  [tool] validate_promo({\"customer_id\": \"shop_005\", \"promo_code\": \"SAVE10\"}) -> {\"valid\": true, \"reason\": \"Promo applied: 10% off eligible orders\", \"estimated_discount\": 0}\n  [tool] get_policies({\"topic\": \"loyalty_redemption\"}) -> {\"topic\": \"loyalty_redemption\", \"summary\": \"Loyalty points can be redeemed at checkout to offset part of the cart total. 100 points = $1.\", \"rules\": [\"Rate: 100 loyalty points = $1.00 off.\", \"Cap: redemption cannot exceed 50% of the current cart total.\", \"Minimum redemption: 500 points ($5).\", \"Stac...\n  [tool] get_policies({\"topic\": \"promo_stacking\"}) -> {\"topic\": \"promo_stacking\", \"summary\": \"At most one promo code per cart. Some discounts stack with each other but not with promo codes.\", \"rules\": [\"One promo code per cart.\", \"Category bundle (5%) does NOT stack with promo codes on the same items — customer gets the better of the two.\", \"Welcome di...\n  [tool] search_products({\"query\": \"ProBook\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 10000, \"min_rating\": 0, \"in_stock_only\": true, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-H102\", \"name\": \"ProBook Laptop 13\", \"brand\": \"Northstar\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"price\": 999, \"rating\": 4.7, \"review_count\": 980, \"in_stock\": true}], \"total_found\": 1}\n  [tool] get_product_details({\"product_id\": \"SP-H102\"}) -> {\"product_id\": \"SP-H102\", \"name\": \"ProBook Laptop 13\", \"category\": \"electronics\", \"subcategory\": \"laptop\", \"brand\": \"Northstar\", \"price\": 999, \"rating\": 4.7, \"review_count\": 980, \"description\": \"ProBook Laptop 13 from Northstar.\", \"specs\": {\"weight_lb\": 3.1, \"ram_gb\": 16, \"battery_hours\": 10}, \"comp...\nAgent: Assuming you mean the Northstar ProBook Laptop 13 at $999:\n\n- **80,000 points path:** **Not fully allowed** on the ProBook by itself.  \n  - 80,000 points = **$800 off**\n  - Loyalty redemption is capped at **50% of the current cart total**\n  - On a $999 item, the max allowed is about **$499 off**, so **80,000 points exceeds the cap**\n  - You do have enough points overall: **104,000 points available**\n\n- **SAVE10 path:** **Allowed**\n  - SAVE10 is currently a valid promo\n  - On a $999 ProBook, that would be about **$99.90 off**\n\nImportant rule note:\n- These are **not mutually exclusive** under store rules. Loyalty points **can stack with promo codes**.\n- Also, you are **not a first-time customer**, so there’s no welcome-discount conflict.\n\nSo in short:\n- **SAVE10:** allowed\n- **80,000 points on the ProBook alone:** not allowed at that full amount because of the 50% cap\n\nI’ll wait for your choice.\nCustomer: Thanks — that helps. Since 80,000 points would be capped on the ProBook alone, please show me the concrete capped points amount against the actual ProBook cart total first, and don’t apply SAVE10 or redeem anything yet.\nAgent: Sure — **without applying SAVE10 or redeeming anything**, here’s the concrete cap for the **ProBook Laptop 13** at its current price:\n\n- **ProBook price / cart total (item only):** **$999.00**\n- **Loyalty redemption cap:** **50% of cart total**\n- **Max allowed loyalty discount:** **$499.50**\n- **Equivalent points at 100 points = $1:** **49,950 points**\n\nPractical note:\n- If you prefer a clean **100-point increment**, then **49,900 points = $499.00 off**\n- Either way, **80,000 points would be over the cap** on the ProBook alone\n\nSo the capped amount against this ProBook-only total is:\n- **Exact cap:** **49,950 points**\n- **Nearest clean 100-point amount:** **49,900 points**\n\nNothing has been applied.\nCustomer: Got it. In that case, please add the ProBook just for this comparison path, and then use the capped points redemption on it — not SAVE10.\nAgent: I can do that, but I need 2 explicit choices before I make changes:\n\n1. **Gift wrap for the ProBook?**  \n   - **Yes** or **No**  \n   - Gift wrap is **$5**\n\n2. **Points amount to redeem:**  \n   - **49,950 points** = **$499.50 off** exact cap, or  \n   - **49,900 points** = **$499.00 off** clean 100-point increment\n\nI **won’t apply SAVE10**.\n\nReply with something like: **“No gift wrap, redeem 49,950 points.”**\nCustomer: No gift wrap, and please redeem the exact capped amount of 49,950 points. Not SAVE10.\n  [tool] add_to_cart({\"customer_id\": \"shop_005\", \"product_id\": \"SP-H102\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"added\", \"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-H102\", \"product_name\": \"ProBook Laptop 13\", \"variant_id\": null, \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 999, \"cart_subtotal\": 999, \"cart_total\": 999}\n  [tool] redeem_loyalty_points({\"customer_id\": \"shop_005\", \"points\": 49950}) -> {\"status\": \"redeemed\", \"points_redeemed\": 49900, \"discount_applied\": 499, \"remaining_balance\": 54100, \"cart_subtotal\": 999, \"cart_total\": 500}\n  [tool] get_cart({\"customer_id\": \"shop_005\"}) -> {\"cart_id\": \"CART-shop_005\", \"customer_id\": \"shop_005\", \"items\": [{\"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-H102\", \"product_name\": \"ProBook Laptop 13\", \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 999, \"line_total\": 999}], \"subtotal\": 999, \"discount_amount\": 0, \"gift_wrap_fee\": 0, \"loyalty_d...\nAgent: Done — I added the **ProBook Laptop 13** with **no gift wrap**.\n\nOne important note: although you requested **49,950 points**, the store processed red\n[... conversation cut]",
+              "Past conversation (33-repeat_purchase_intent_confirm):\nCustomer: Add the TechPhone Lite 15 to my cart please.\n  [tool] search_products({\"query\": \"TechPhone Lite 15\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 10000, \"min_rating\": 0, \"in_stock_only\": true, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-2004\", \"name\": \"TechPhone Lite 15\", \"brand\": \"TechPhone\", \"category\": \"electronics\", \"subcategory\": \"phone\", \"price\": 499, \"rating\": 4.3, \"review_count\": 2200, \"in_stock\": true}, {\"product_id\": \"SP-1101\", \"name\": \"ProBook Laptop 15-inch\", \"brand\": \"ProBook\", \"categor...\n  [tool] get_variants({\"product_id\": \"SP-2004\"}) -> {\"product_id\": \"SP-2004\", \"product_name\": \"TechPhone Lite 15\", \"base_price\": 499, \"variants\": [], \"note\": \"This product has no variants; no variant_id is needed for add_to_cart.\"}\nAgent: Absolutely — I found the TechPhone Lite 15, and it has no variants, so I can add 1 right away.\n\nWould you like gift wrap for it? It’s $5 per unit.\nCustomer: No gift wrap, please.\n  [tool] add_to_cart({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2004\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"added\", \"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-2004\", \"product_name\": \"TechPhone Lite 15\", \"variant_id\": null, \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 499, \"cart_subtotal\": 499, \"cart_total\": 499}\nAgent: Done — the TechPhone Lite 15 has been added to your cart.\n\nCart total: $499\nCustomer: [TASK_DONE]",
+              "Past conversation (31-price_drop_loyalty_platinum_compound):\nCustomer: Add the TechPhone Lite 15 to my cart.\n  [tool] search_products({\"query\": \"TechPhone Lite 15\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 10000, \"min_rating\": 0, \"in_stock_only\": true, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-2004\", \"name\": \"TechPhone Lite 15\", \"brand\": \"TechPhone\", \"category\": \"electronics\", \"subcategory\": \"phone\", \"price\": 499, \"rating\": 4.3, \"review_count\": 2200, \"in_stock\": true}, {\"product_id\": \"SP-1101\", \"name\": \"ProBook Laptop 15-inch\", \"brand\": \"ProBook\", \"categor...\n  [tool] get_variants({\"product_id\": \"SP-2004\"}) -> {\"product_id\": \"SP-2004\", \"product_name\": \"TechPhone Lite 15\", \"base_price\": 499, \"variants\": [], \"note\": \"This product has no variants; no variant_id is needed for add_to_cart.\"}\n  [tool] add_to_cart({\"customer_id\": \"shop_005\", \"product_id\": \"SP-2004\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"added\", \"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-2004\", \"product_name\": \"TechPhone Lite 15\", \"variant_id\": null, \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 499, \"cart_subtotal\": 499, \"cart_total\": 499}\nAgent: Done — I added 1 × TechPhone Lite 15 to your cart.\n\nCart total: $499\n\nNeed anything else added or want me to check for any eligible promos?\nCustomer: [TASK_DONE]"
+            ]
+          }
+        },
+        {
+          "name": "search_products",
+          "arguments": {
+            "query": "TechPhone Lite",
+            "category": "electronics"
+          },
+          "result": {
+            "products": [
+              {
+                "product_id": "SP-H105",
+                "name": "TechPhone Lite 15",
+                "brand": "Orion",
+                "category": "electronics",
+                "subcategory": "phone",
+                "price": 499,
+                "rating": 4.4,
+                "review_count": 2100,
+                "in_stock": true
+              }
+            ],
+            "total_found": 1
+          }
+        },
+        {
+          "name": "get_product_details",
+          "arguments": {
+            "product_id": "SP-H105"
+          },
+          "result": {
+            "product_id": "SP-H105",
+            "name": "TechPhone Lite 15",
+            "category": "electronics",
+            "subcategory": "phone",
+            "brand": "Orion",
+            "price": 499,
+            "rating": 4.4,
+            "review_count": 2100,
+            "description": "TechPhone Lite 15 from Orion.",
+            "specs": {
+              "storage_gb": 128
+            },
+            "compatible_with": [],
+            "in_stock": true,
+            "stock_quantity": 50,
+            "shipping_days": 2,
+            "gift_wrap_available": true,
+            "backorder_available": false,
+            "previous_price": 549,
+            "variants": null,
+            "shipping_estimate": "2 business days (standard)"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Yes, please add one TechPhone Lite."
+    },
+    {
+      "role": "assistant",
+      "content": "Would you like gift wrap for it, or no gift wrap? Gift wrap adds $5.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "No gift wrap, please."
+    },
+    {
+      "role": "assistant",
+      "content": "Added **1 TechPhone Lite 15** with **no gift wrap** at the catalog price of **$499**. No promo code was applied.\n\n**Cart total: $499.**",
+      "tool_calls": [
+        {
+          "name": "add_to_cart",
+          "arguments": {
+            "customer_id": "shop_004",
+            "product_id": "SP-H105",
+            "quantity": 1,
+            "gift_wrap": false
+          },
+          "result": {
+            "status": "added",
+            "cart_item_id": "CI-0001",
+            "product_id": "SP-H105",
+            "product_name": "TechPhone Lite 15",
+            "variant_id": null,
+            "quantity": 1,
+            "gift_wrap": false,
+            "unit_price": 499,
+            "cart_subtotal": 499,
+            "cart_total": 499
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "70a546fce5108cb4381c6c6c6ea0adccd6e3d91b99b90a14f1c09d1b1f2bc5fc",
+  "agent_name": "OpenCodeTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "ag_seed": null,
+    "training_lookup": true,
+    "session": "ses_e32a0def5ffeQfS5VXIjASSJlz",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 3,
+    "model_calls": 7
+  },
+  "token_usage": {
+    "input_tokens": 34552,
+    "cached_input_tokens": 28873,
+    "output_tokens": 295,
+    "reasoning_output_tokens": 12,
+    "total_tokens": 34847,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0200243,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0200243
+  },
+  "input_tokens": 34552,
+  "cached_input_tokens": 28873,
+  "output_tokens": 295,
+  "reasoning_output_tokens": 12,
+  "total_tokens": 34847,
+  "cost_usd": 0.0200243,
+  "state_diff": {
+    "created": {
+      "cart_items": {
+        "CI-0001": {
+          "cart_item_id": "CI-0001",
+          "customer_id": "shop_004",
+          "product_id": "SP-H105",
+          "quantity": 1,
+          "gift_wrap": false,
+          "variant_id": null
+        }
+      }
+    },
+    "modified": {
+      "carts": {
+        "CART-shop_004": {
+          "item_ids": {
+            "old": [],
+            "new": [
+              "CI-0001"
+            ]
+          },
+          "subtotal": {
+            "old": 0,
+            "new": 499
+          },
+          "total": {
+            "old": 0,
+            "new": 499
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "subtotal",
+      "expected_value": 499
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "total",
+      "expected_value": 499
+    },
+    {
+      "entity_type": "cart_items",
+      "match_fields": {
+        "customer_id": "shop_004",
+        "product_id": "SP-H105",
+        "gift_wrap": false,
+        "quantity": 1
+      },
+      "expected_fields": {}
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 4,
+  "ux_response_density": 5,
+  "ux_base_score": 4.7,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 3,
+  "ux_tool_call_count": 4,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "558947b2ce0b5d90a633e7d44e8599c329a96ac5ed9e43c9d37ffb5e6cf3c055",
+    "judge_ux_quality.md": "0234643a8dcf766c390aff2dc11b2f74f0e13ef7a38b29df70165bd333b82656",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

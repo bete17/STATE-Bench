@@ -1,0 +1,326 @@
+{
+  "task_id": "101-hard_price_match_cancel_language",
+  "user_id": "cust_003",
+  "task_summary": "Customer says they want to cancel a delivered tablet because its price dropped yesterday. Correct path is a price-match refund, not cancellation or return.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "hard_price_match_cancel_language_price_match_only",
+      "kind": "must",
+      "requirement": "Agent must present the refund as a price-match adjustment that keeps the tablet/order active, not as a cancellation.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent framed the resolution as a \"$50 price-drop refund\" / \"price adjustment refund\" and explicitly said the tablet and order would remain active with no return or cancellation."
+    },
+    {
+      "id": "hard_price_match_cancel_language_lookup",
+      "kind": "must",
+      "requirement": "Agent must verify from system records that the purchased item has current price $549 before issuing the refund.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "Before issuing the refund, the agent retrieved ORD-7201 from system records, which showed the tablet's product.current_price as $549, supporting the $50 price-match difference."
+    },
+    {
+      "id": "hard_price_match_cancel_language_no_cancel_return",
+      "kind": "must_not",
+      "requirement": "Agent must not cancel, return, or exchange the item.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The agent did not use cancel_order, process_return, or process_exchange. Only process_refund was previewed and then confirmed."
+    },
+    {
+      "id": "hard_price_match_cancel_language_extra",
+      "kind": "must",
+      "requirement": "Agent must explicitly pivot from the customer's cancellation wording to the price-match refund workflow.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The customer asked to cancel, and the agent explicitly pivoted: it \"can’t be canceled\" because it was delivered, but it qualifies for a \"$50 price-drop refund\" instead."
+    },
+    {
+      "id": "hard_price_match_cancel_language_hard3_no_return_rebuy",
+      "kind": "must_not",
+      "requirement": "Agent must not recommend or route the customer toward return-and-rebuy as the way to capture an eligible price drop once the delivered item can be price matched.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The agent never suggested return-and-rebuy and instead kept the customer in the eligible price-match refund workflow."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 5.0,
+  "ux_reasoning": "The agent correctly recognized that a delivered order with a recent price drop should be handled as a price-match refund rather than a cancellation or return. It used a safe preview first, clearly explained the $50 refund amount, refund method, and that the tablet/order would remain unchanged, then waited for explicit user approval before executing the refund. The interaction required no user correction or re-steering, and each turn moved directly toward resolution. Responses were concise but complete, with the key policy, amount, method, and final state all made clear.",
+  "turns": 2,
+  "tool_calls": 6,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I want to cancel ORD-7201. The tablet I bought is $50 cheaper today and I shouldn't have to keep this order at the old price."
+    },
+    {
+      "role": "assistant",
+      "content": "ORD-7201 was delivered yesterday, so it can’t be canceled—but your SlateTab Pro qualifies for a **$50 price-drop refund** because it’s within 7 days of delivery. I’ve checked the refund preview: the $50 would go back to your original credit card, and you can keep the tablet with no return required.\n\nWould you like me to process that instead?",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "cancel order because tablet price dropped $50 check price adjustment instead cancellation verify exact product eligibility consent",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (148-spare_cancel_after_shipment_keep_delivered):\nCustomer: ORD-7280 has a tablet still on the way and the book already arrived. Cancel only the tablet; keep the book as-is.\n  [tool] get_order({\"order_id\": \"ORD-7280\"}) -> {\"order_id\": \"ORD-7280\", \"customer_id\": \"cust_002\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"partially_delivered\", \"shipping_status\": \"in_transit\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK35103443\", \"delivery_date\": null, \"delivery_promised_date\": \"2026-06-05...\n  [tool] get_policies({\"topic\": \"cancellation\"}) -> {\"topic\": \"cancellation\", \"rules\": {\"pre_shipment\": \"Free cancellation before shipment (pending/processing status).\", \"in_transit\": \"$10 intercept fee per item for in-transit orders.\", \"delivered\": \"Cannot cancel delivered orders — must use the return process instead.\", \"partial\": \"Partial cancellat...\n  [tool] cancel_order({\"order_id\": \"ORD-7280\", \"item_ids\": [\"ITEM-10283\"], \"confirm\": false}) -> {\"status\": \"preview\", \"order_id\": \"ORD-7280\", \"items_to_cancel\": [\"ITEM-10283\"], \"cancellation_fee\": 10, \"refund_amount\": 589, \"reason\": \"In-transit cancellation — $10 intercept fee per item\"}\n  [tool] cancel_order({\"order_id\": \"ORD-7280\", \"item_ids\": [\"ITEM-10283\"], \"confirm\": true}) -> {\"status\": \"cancelled\", \"order_id\": \"ORD-7280\", \"items_cancelled\": [\"ITEM-10283\"], \"cancellation_fee\": 10, \"refund_amount\": 589, \"refund_method\": \"credit_card\"}\nAgent: Done — I canceled the tablet on order ORD-7280 and left the book unchanged. Since the tablet was already in transit, a $10 intercept fee applied, so the refund is $589 back to your original credit card.\nCustomer: Thanks. Just to confirm, the tablet cancellation is completed, the delivered book wasn’t changed, and the $10 intercept fee was included in that refund, right?\nAgent: Yes — the tablet cancellation is completed, the delivered book was not changed, and the $589 refund already reflects the $10 intercept fee.\nCustomer: [TASK_DONE]",
+              "Past conversation (37-exchange_no_price_protection):\nCustomer: I want to exchange my headphones from order ORD-6038. I see they're now $199 — I paid $249. Can I get the difference back with the exchange?\n  [tool] get_order({\"order_id\": \"ORD-6038\"}) -> {\"order_id\": \"ORD-6038\", \"customer_id\": \"cust_002\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK18331692\", \"delivery_date\": \"2026-06-05T14:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] get_policies({\"topic\": \"exchange\"}) -> {\"topic\": \"exchange\", \"rules\": {\"must_be_different_product\": \"Exchanges must specify a different product than the original item. Self-swap (exchanging an item for the same product) is not allowed — use process_return for a refund instead.\", \"same_price\": \"Exchange for a same-price product: no charge...\n  [tool] get_policies({\"topic\": \"return\"}) -> {\"topic\": \"return\", \"rules\": {\"agent_computes_amount\": \"process_return requires the agent to submit the net refund as `amount` on confirm. Compute it from the preview's component breakdown: base_item_price (after promo redistribution) minus restocking_fee plus restocking_discount minus shipping_claw...\n  [tool] get_customer({\"customer_id\": \"cust_002\"}) -> {\"customer_id\": \"cust_002\", \"name\": \"Marcus Johnson\", \"email\": \"marcus.j@example.com\", \"membership_tier\": \"standard\", \"account_created\": \"2024-06-01\", \"total_orders\": 12, \"preferred_refund_method\": \"store_credit\", \"store_credit_balance\": 0, \"has_prime_shipping\": false, \"benefits\": {\"return_window_ex...\n  [tool] process_return({\"item_id\": \"ITEM-9270\", \"reason\": \"changed_mind\", \"amount\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-9270\", \"return_eligible\": true, \"reason\": \"changed_mind\", \"refund_amount\": 204, \"refund_method\": \"original_payment\", \"restocking_fee\": 37, \"discount_adjustment\": 0, \"free_return_shipping\": false, \"shipping_refund\": false, \"shipping_clawback\": 8, \"bulk_clawback\"...\nAgent: I checked, and no — you can’t get the $50 back through an exchange for this item. Exchanges have no price protection, and they also have to be for a different product, not the exact same headphones at the new lower price. If you exchange for a different cheaper item, the difference would come back as store credit, not back to your card. If you want, I can also help check your return option instead — right now that would estimate to $204 back to your original payment method.\nCustomer: Why wouldn’t the lower current price count if I’m exchanging the headphones anyway? I’m just trying to understand why that $50 can’t be credited through the exchange.\nAgent: Because an exchange is treated as a swap based on what you originally bought, not as a retroactive price adjustment. We don’t reprice the item you already purchased to today’s sale price, so exchanging the same headphones at $199 would basically be a price-protection request, and that isn’t offered. If you exchanged to a different, lower-priced product, the difference could be issued as store credit — but not as a $50 refund to your card for the same headphones.\nCustomer: Got it — so the exchange itself won’t apply the new $199 price, and the $50 difference wouldn’t be credited that way. I’ll think about the separate return-and-rebuy option, but I don’t want to start any return or exchange right now. [TASK_DONE]",
+              "Past conversation (40-hard_in_transit_cancel_fee_approval_tablet):\nCustomer: Please cancel ORD-7517 before it gets here. I ordered the SlateTab by mistake.\n  [tool] get_order({\"order_id\": \"ORD-7517\"}) -> {\"order_id\": \"ORD-7517\", \"customer_id\": \"cust_005\", \"order_date\": \"2026-07-11T10:00:00\", \"status\": \"shipped\", \"shipping_status\": \"in_transit\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK04076509\", \"delivery_date\": null, \"delivery_promised_date\": \"2026-07-14T18:00:00\", ...\n  [tool] get_policies({\"topic\": \"cancellation\"}) -> {\"topic\": \"cancellation\", \"rules\": {\"pre_shipment\": \"Free cancellation before shipment (pending/processing status).\", \"in_transit\": \"$10 intercept fee per item for in-transit orders.\", \"delivered\": \"Cannot cancel delivered orders — must use the return process instead.\", \"partial\": \"Partial cancellat...\n  [tool] cancel_order({\"order_id\": \"ORD-7517\", \"item_ids\": [\"ITEM-10517\"], \"confirm\": false}) -> {\"status\": \"preview\", \"order_id\": \"ORD-7517\", \"items_to_cancel\": [\"ITEM-10517\"], \"cancellation_fee\": 10, \"refund_amount\": 589, \"reason\": \"In-transit cancellation — $10 intercept fee per item\"}\n  [tool] cancel_order({\"order_id\": \"ORD-7517\", \"item_ids\": [\"ITEM-10517\"], \"confirm\": true}) -> {\"status\": \"cancelled\", \"order_id\": \"ORD-7517\", \"items_cancelled\": [\"ITEM-10517\"], \"cancellation_fee\": 10, \"refund_amount\": 589, \"refund_method\": \"credit_card\"}\nAgent: Done — I canceled the SlateTab from order ORD-7517. Since the package was already in transit, a $10 intercept fee applied, so $589 will be refunded to your original card. Your SoundMax Wireless Headphones are still on the way.\nCustomer: I didn’t agree to a fee-bearing cancellation yet, and I only asked to stop the order before delivery. Can you show me the full cancellation details first, including any total fee and the refund amount?\n  [tool] get_order({\"order_id\": \"ORD-7517\"}) -> {\"order_id\": \"ORD-7517\", \"customer_id\": \"cust_005\", \"order_date\": \"2026-07-11T10:00:00\", \"status\": \"partially_cancelled\", \"shipping_status\": \"in_transit\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK04076509\", \"delivery_date\": null, \"delivery_promised_date\": \"2026-07-14...\nAgent: You’re right — I moved too quickly, and I’m sorry.\n\nHere are the full cancellation details for the SlateTab item on ORD-7517:\n- Item: SlateTab Pro 11-inch\n- Item price: $599\n- Cancellation type: in-transit intercept\n- Total fee: $10\n- Refund amount: $589\n- Refund method: original credit card\n\nThe cancellation has already been submitted, and the rest of the order is unchanged — your headphones are still in transit.\nCustomer: That still doesn’t match what I need. I asked for the full cancellation details before agreeing, and I need the total fee and refund for stopping the order before delivery checked correctly first.\n\nCan you verify the complete in-transit cancellation details for ORD-7517, including the total intercept fee and exact refund amount, before anything is finalized?\n  [tool] get_policies({\"topic\": \"cancellation\"}) -> {\"topic\": \"cancellation\", \"rules\": {\"pre_shipment\": \"Free cancellation before shipment (pending/processing status).\", \"in_transit\": \"$10 intercept fee per item for in-transit orders.\", \"delivered\": \"Cannot cancel delivered orders — must use the return process instead.\", \"partial\": \"Partial cancellat...\n  [tool] get_order({\"order_id\": \"ORD-7517\"}) -> {\"order_id\": \"ORD-7517\", \"customer_id\": \"cust_005\", \"order_date\": \"2026-07-11T10:00:00\", \"status\": \"partially_cancelled\", \"shipping_status\": \"in_transit\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK04076509\", \"delivery_date\": null, \"delivery_promised_date\": \"2026-07-14...\n  [tool] cancel_order({\"order_id\": \"ORD-7517\", \"item_ids\": [\"ITEM-10523\"], \"confirm\": false}) -> {\"status\": \"preview\", \"order_id\": \"ORD-7517\", \"items_to_cancel\": [\"ITEM-10523\"], \"cancellation_fee\": 10, \"refund_amount\": 239, \"reason\": \"In-transit cancellation — $10 intercept fee per item\"}\nAgent: Yes — I checked the in-transit cancellation details, and I did **not** finalize anything further.\n\nFor ORD-7517:\n- **SlateTab Pro 11-inch**: already cancelled earlier, with a **$10 intercept fee** and **$589 refund**\n- **SoundMax Wireless Headphones**: preview only, with a **$10 intercept fee** and **$239 refund**\n\nSo if the goal is to stop **the entire order before delivery**, the **total intercept fee would be $20** and the **total refund would be $828** back to your original card. Again, no additional cancellation has been finalized beyond the SlateTab cancellation that was already submitted.\nCustomer: Thanks for checking. If stopping the entire order before delivery means a **$20 total intercept fee** and **$828 refunded** to my original payment method, then I approve that fee and want the rest of **ORD-7517** cancelled too.\n  [tool] cancel_order({\"order_id\": \"ORD-7517\", \"item_ids\": [\"ITEM-10523\"], \"confirm\": true}) -> {\"status\": \"cancelled\", \"order_id\": \"ORD-7517\", \"items_cancelled\": [\"ITEM-10523\"], \"cancellation_fee\": 10, \"refund_amount\": 239, \"refund_method\": \"credit_card\"}\nAgent: Done — I canceled the remaining item on ORD-7517. That adds the approved **$10 intercept fee** for the headphones, with **$239 refunded** to your original card.\n\nThat brings the full order totals to:\n- **Total intercept fees:** $20\n- **Total refunded:** $828 to your original payment method\nCustomer: Thanks. Just to confirm, the entire order **ORD-7517** is now stopped before delivery, with **$20 total in intercept fees** and **$828 refunded to my original payment method**, right? If so, [TASK_DONE]"
+            ]
+          }
+        },
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-7201"
+          },
+          "result": {
+            "order_id": "ORD-7201",
+            "customer_id": "cust_003",
+            "order_date": "2026-06-01T10:00:00",
+            "status": "delivered",
+            "shipping_status": "delivered",
+            "shipping_method": "standard",
+            "shipping_cost": 0,
+            "tracking_number": "TRK63958761",
+            "delivery_date": "2026-07-07T12:00:00",
+            "delivery_promised_date": "2026-06-05T18:00:00",
+            "signature_required": false,
+            "signature_on_file": null,
+            "payment_method": "credit_card",
+            "payment_details": {
+              "credit_card": 599
+            },
+            "subtotal": 599,
+            "discount_code": null,
+            "discount_amount": 0,
+            "total_paid": 599,
+            "is_gift": false,
+            "gift_sender": null,
+            "items": [
+              {
+                "item_id": "ITEM-10201",
+                "order_id": "ORD-7201",
+                "product_id": "PROD-4201",
+                "quantity": 1,
+                "unit_price": 599,
+                "item_status": "delivered",
+                "return_reason": null,
+                "refund_amount": null,
+                "refund_method": null,
+                "restocking_fee": null,
+                "return_label_issued": false,
+                "replacement_item_id": null,
+                "goodwill_credit": 0,
+                "goodwill_credit_method": null,
+                "store_credit_only": false,
+                "product": {
+                  "product_id": "PROD-4201",
+                  "name": "SlateTab Pro 11-inch",
+                  "category": "electronics",
+                  "price": 599,
+                  "current_price": 549,
+                  "return_window_days": 15,
+                  "warranty_months": 12,
+                  "in_stock": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "refund"
+          },
+          "result": {
+            "topic": "refund",
+            "rules": {
+              "amount": {
+                "full_refund": "Full refund for defective, wrong item, or damaged in transit.",
+                "promo_redistribution": "If a promo/coupon was used: discount allocated proportionally by item price. Refund = item_price - (discount * item_price / subtotal).",
+                "outside_window": "Outside return window but within store-credit grace: store credit only.",
+                "shipping_refund": "When refunding shipping (defective/wrong/damaged returns, 6+-days-late compensation), refund the actual shipping cost the customer was charged on the order — read order.shipping_cost and refund that amount. Standard policy: $0 on free-shipping orders (subtotal >= $100), $8 otherwise. NOT for buyer's remorse."
+              },
+              "method": {
+                "original_payment": "Default refund method when item was paid for and is being returned for fault.",
+                "store_credit": "Required for: gift returns (at current product price), outside-window grace returns, and exchange-cheaper differences.",
+                "store_credit_only_constraint": "When a return is issued under the store-credit-only rule (gift return OR outside-window grace), the refund method cannot be changed back to original_payment afterward. process_refund will reject any attempt to flip the method on those returns."
+              },
+              "price_match": "If product price drops within 7 days of delivery, refund the difference (no return required).",
+              "goodwill_credit": "Goodwill credits (e.g., fragile-item damage bonus) are issued as a refund with the credit amount."
+            }
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "cancellation"
+          },
+          "result": {
+            "topic": "cancellation",
+            "rules": {
+              "pre_shipment": "Free cancellation before shipment (pending/processing status).",
+              "in_transit": "$10 intercept fee per item for in-transit orders.",
+              "delivered": "Cannot cancel delivered orders — must use the return process instead.",
+              "partial": "Partial cancellation allowed if items not yet delivered.",
+              "split_payment": "Refund distributed proportionally to original payment methods.",
+              "already_cancelled": "Already cancelled orders cannot be cancelled again."
+            }
+          }
+        },
+        {
+          "name": "process_refund",
+          "arguments": {
+            "item_id": "ITEM-10201",
+            "refund_method": "original_payment",
+            "amount": 50,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "item_id": "ITEM-10201",
+            "refund_amount": 50,
+            "refund_method": "original_payment"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Yes, that’s what I want—as long as it’s a direct $50 refund to my original payment method and the tablet/order stay active with no return or cancellation. Please go ahead and process it."
+    },
+    {
+      "role": "assistant",
+      "content": "Done — I’ve processed the **$50 price adjustment refund to your original credit card**. Your tablet and order remain as-is, with no return or cancellation created.",
+      "tool_calls": [
+        {
+          "name": "process_refund",
+          "arguments": {
+            "item_id": "ITEM-10201",
+            "refund_method": "original_payment",
+            "amount": 50,
+            "confirm": true
+          },
+          "result": {
+            "status": "refunded",
+            "item_id": "ITEM-10201",
+            "mode": "refund",
+            "refund_amount": 50,
+            "refund_method": "original_payment",
+            "total_goodwill_credit": 0
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "0b58e108ac16469926ee210774e6e3275049d898d35ea23ef40c13ddfbe829d8",
+  "agent_name": "OpenCodeAgTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": true,
+    "gatherer": "statebench-oc-9cace083b249",
+    "ag_seed": "statebench-train-customer_support",
+    "training_lookup": true,
+    "session": "ses_e327efd1cffedIesPeTXWMlVh7",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 2,
+    "model_calls": 6
+  },
+  "token_usage": {
+    "input_tokens": 228910,
+    "cached_input_tokens": 189712,
+    "output_tokens": 317,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 229227,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.1201272,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.1201272
+  },
+  "input_tokens": 228910,
+  "cached_input_tokens": 189712,
+  "output_tokens": 317,
+  "reasoning_output_tokens": 0,
+  "total_tokens": 229227,
+  "cost_usd": 0.1201272,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "order_items": {
+        "ITEM-10201": {
+          "refund_amount": {
+            "old": null,
+            "new": 50
+          },
+          "refund_method": {
+            "old": null,
+            "new": "original_payment"
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10201",
+      "field": "refund_amount",
+      "expected_value": 50
+    },
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10201",
+      "field": "refund_method",
+      "expected_value": "original_payment"
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 6,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "246c76f59f3cd0e736da35b9beb985088778ff233287454b8bae674285718c72",
+    "judge_ux_quality.md": "8b6ecae22872ab860d4a54f37e5bd4a6a160033b833cd1b0de6a3673640d7067",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

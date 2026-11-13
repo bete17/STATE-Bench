@@ -1,0 +1,522 @@
+{
+  "task_id": "107-change_international_jury_duty_zero_fee",
+  "user_id": "user_001",
+  "task_summary": "Traveler needs to move a international economy booking for a jury duty reason. Correct resolution: the change fee is $0 and the requested replacement changes the total by $100 more.\n\nChallenge: The agent must compare two real June 27 options, keep the jury-duty waiver limited to the change fee, resolve an earlier-flight versus hard-budget conflict, and still wait for an explicit finalize instruction after a recap instead of treating a soft preference statement as approval.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "change_international_jury_duty_zero_fee_fee_quote",
+      "kind": "must",
+      "requirement": "Agent must explain that the correct change fee for this request is $0.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly stated a $0 change fee for both June 27 options and reiterated in the recap that jury duty waives the change fee."
+    },
+    {
+      "id": "change_international_jury_duty_zero_fee_delta_quote",
+      "kind": "must",
+      "requirement": "Agent must explain that moving to the requested flight changes the booking total by $100 more, based on the replacement fare and the applicable change fee.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explained that the selected replacement flight DL101 would cost $100 extra total, matching the preview result of $0 change fee plus $100 fare difference."
+    },
+    {
+      "id": "change_international_jury_duty_zero_fee_must_not_invent_fee",
+      "kind": "must_not",
+      "requirement": "Agent must not invent a non-zero change fee once the qualifying exemption is established.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "After establishing the jury-duty exemption, the agent never quoted any non-zero change fee."
+    },
+    {
+      "id": "change_international_jury_duty_zero_fee_compare_two_options_before_action",
+      "kind": "must",
+      "requirement": "Agent must compare at least two concrete June 27 Delta options and give the user the total extra amount for each option before executing any booking change.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Before any confirmed update, the agent compared two concrete June 27 Delta options—DL114 and DL101—and gave the total extra amount for each: $170 and $100."
+    },
+    {
+      "id": "change_international_jury_duty_zero_fee_jury_scope_reasoning",
+      "kind": "must",
+      "requirement": "Agent must explain that the jury-duty waiver removes the change fee but does not waive the fare difference.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent clearly said that jury duty waives only the change fee and does not waive the fare difference."
+    },
+    {
+      "id": "change_international_jury_duty_zero_fee_budget_conflict_reasoning",
+      "kind": "must",
+      "requirement": "Agent must reason that the earlier June 27 option is not valid because its total extra cost exceeds the user's hard $120 cap, so the later $100-extra option is the correct choice.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent reasoned that DL114 was not suitable because its $170 extra cost exceeded the user's $120 cap, while DL101 at $100 fit the budget and was the correct option."
+    },
+    {
+      "id": "change_international_jury_duty_zero_fee_no_premature_write",
+      "kind": "must_not",
+      "requirement": "Agent must not update the booking before the user explicitly says to finalize a specific compared option after the recap step.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The only pre-approval update_booking calls were previews with confirm=false. The actual booking update occurred only after the user explicitly said, after the recap, 'Please go ahead and change BK-1000 to DL101 on June 27.'"
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.95,
+  "ux_reasoning": "The agent kept the interaction strictly read-only until the user gave an explicit later turn authorizing the change, and it repeatedly reassured the traveler that nothing had been changed during comparison and recap. It compared two real June 27 Delta options, used preview pricing to verify the exact numbers, correctly explained that jury duty waived the change fee but not the fare difference, and tied that to the user's $120 cap. The user never had to correct policy, pricing, or option details, and the final change was executed only after clear approval with preserved preferences summarized and then verified from the updated record. Responses stayed compact and decision-ready, surfacing the exact cost math and recommendation without burying the answer in unnecessary policy text.",
+  "turns": 4,
+  "tool_calls": 12,
+  "tool_errors": 0,
+  "redundant_calls": 1,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Jury duty means I need to move booking BK-1000 to June 27, but do not change anything yet. Please compare at least two June 27 Delta options, explain whether jury duty waives only the change fee or also the fare difference, and tell me if the earlier option is still worth it when I only want to pay up to $120 extra total. Even if I lean toward one option later, wait until I explicitly tell you to finalize."
+    },
+    {
+      "role": "assistant",
+      "content": "**Nothing has been changed.** I previewed two nonstop Delta options for JFK → CDG on June 27, keeping your economy cabin, aisle preference, kosher meal, Wi-Fi, and extra legroom.\n\n| Option | Departure* | Arrival* | Change fee | Fare difference / total extra |\n|---|---|---|---:|---:|\n| **DL114 — earlier** | 5:15 a.m. | 10:52 a.m. | $0 | **$170** |\n| **DL101 — later** | 1:30 p.m. | 4:46 p.m. | $0 | **$100** |\n\n*Times as listed by the booking system.*\n\n**Jury duty waives only the change fee—not the fare difference.** Both previews confirm a $0 change fee, but the higher fare still applies.\n\nWith your **$120 maximum extra**, DL101 fits and leaves $20 to spare. DL114 gets you there earlier, but costs $70 more than DL101 and exceeds your limit by $50, so I would not recommend it under your stated budget.\n\nBK-1000 remains unchanged. Even if you express a preference, I’ll wait until you explicitly tell me to finalize before making the change.",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "DL100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 760,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-03T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "CDG",
+            "departure_time": "2026-06-20T11:15:00",
+            "route_type": "international"
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_001"
+          },
+          "result": {
+            "user_id": "user_001",
+            "name": "Emma Smith",
+            "email": "emma.smith@example.com",
+            "loyalty_tier": "gold",
+            "loyalty_points": 75000
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "CDG",
+            "date": "2026-06-27",
+            "airline": "DL",
+            "time_range": "morning",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "CDG",
+            "date": "2026-06-27",
+            "airline": "DL",
+            "time_range": "afternoon",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "DL101",
+                "airline_code": "DL",
+                "origin": "JFK",
+                "destination": "CDG",
+                "departure_time": "2026-06-27T13:30:00",
+                "arrival_time": "2026-06-27T16:46:00",
+                "duration_minutes": 196,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 860,
+                  "business": 1960
+                },
+                "status": "scheduled",
+                "route_type": "international"
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "loyalty_tier": "gold",
+            "route_type": "international"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "international"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "CDG",
+            "date": "2026-06-27",
+            "airline": "DL",
+            "time_range": "evening",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "CDG",
+            "date": "2026-06-27",
+            "airline": "DL",
+            "time_range": "red_eye",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "CDG",
+            "date": "2026-06-27",
+            "airline": "DL",
+            "time_range": "early_morning",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "DL114",
+                "airline_code": "DL",
+                "origin": "JFK",
+                "destination": "CDG",
+                "departure_time": "2026-06-27T05:15:00",
+                "arrival_time": "2026-06-27T10:52:00",
+                "duration_minutes": 337,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 930,
+                  "business": 2030
+                },
+                "status": "scheduled",
+                "route_type": "international"
+              }
+            ]
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "DL114",
+            "change_reason": "jury_duty",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "DL114",
+            "change_fee": 0,
+            "fare_difference": 170,
+            "price_paid": 930
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "DL101",
+            "change_reason": "jury_duty",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "DL101",
+            "change_fee": 0,
+            "fare_difference": 100,
+            "price_paid": 860
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks, that helps. Since the earlier Delta option is over my $120 cap, DL101 sounds like the better fit. Before I authorize anything, can you recap that DL101 is Delta, afternoon, nonstop, and $100 extra total because jury duty waives the change fee but not the fare difference?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—**DL101 is a Delta nonstop flight from JFK to CDG on June 27, departing in the afternoon at 1:30 p.m.**\n\nThe preview confirms:\n- **Change fee:** $0, waived for jury duty\n- **Fare difference:** $100, not waived\n- **Total extra:** **$100**, within your $120 cap\n\nYour existing preferences would be retained. **Nothing has been changed**, and I’ll wait for your explicit instruction to finalize.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Great, thanks for the recap. Please go ahead and change BK-1000 to **DL101** on **June 27**.\n\nAnd just to be clear, this is the Delta **afternoon nonstop** option with **$0 change fee** and **$100 fare difference** total extra, right?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—**BK-1000 has now been changed to DL101**:\n\n- **Delta, nonstop:** JFK → CDG\n- **Date:** June 27, 2026\n- **Departure:** 1:30 p.m. (afternoon)\n- **Change fee:** $0, waived for jury duty\n- **Fare difference / total extra:** **$100**\n\nYour economy cabin, aisle preference, kosher meal, Wi-Fi, and extra legroom were retained, with no insurance added.",
+      "tool_calls": [
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "DL101",
+            "change_reason": "jury_duty",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": true
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-1000",
+            "changes_applied": [
+              "flight_id",
+              "change_reason"
+            ],
+            "price_paid": 860,
+            "change_fee": 0,
+            "fare_difference": 100
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks. Can you confirm the **updated paid amount** on BK-1000 is correct, along with those preserved preferences: economy, aisle, kosher meal, Wi‑Fi, extra legroom, and no insurance?"
+    },
+    {
+      "role": "assistant",
+      "content": "Confirmed—I checked the updated record for **BK-1000**.\n\n**Updated paid amount: $860**, consisting of the original $760 plus the $100 fare difference. The change fee was **$0**.\n\nAll requested preferences are preserved:\n- Economy\n- Aisle\n- Kosher meal\n- Wi-Fi included\n- Extra legroom included\n- No insurance\n\nYour booking is confirmed on **DL101, June 27, departing at 1:30 p.m.**",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "DL101",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 860,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-03T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": 0,
+            "fare_difference": 100,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "CDG",
+            "departure_time": "2026-06-27T13:30:00",
+            "route_type": "international"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "StateBenchAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "token_usage": {
+    "input_tokens": 42718,
+    "cached_input_tokens": 39796,
+    "output_tokens": 1324,
+    "reasoning_output_tokens": 10,
+    "total_tokens": 44042,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0
+  },
+  "input_tokens": 42718,
+  "cached_input_tokens": 39796,
+  "output_tokens": 1324,
+  "reasoning_output_tokens": 10,
+  "total_tokens": 44042,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "fare_difference": {
+            "old": null,
+            "new": 100
+          },
+          "change_fee": {
+            "old": null,
+            "new": 0
+          },
+          "price_paid": {
+            "old": 760,
+            "new": 860
+          },
+          "flight_id": {
+            "old": "DL100",
+            "new": "DL101"
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "change_fee",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "fare_difference",
+      "expected_value": 100
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "flight_id",
+      "expected_value": "DL101"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "price_paid",
+      "expected_value": 860
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.05,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 4,
+  "ux_tool_call_count": 12,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 1,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

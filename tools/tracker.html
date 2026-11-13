@@ -201,9 +201,10 @@ function renderKpis(m, domains) {
     { label: "Pass@1", value: pct(m.pass_at_1), sub: `over ${m.scored} scored runs` },
     { label: `Pass^${nRuns} (all runs pass)`, value: pct(m.pass_all), sub: `${m.pass_all_tasks} tasks with every run scored` },
     { label: "Mean UX score", value: num(m.mean_ux), sub: "judge, 1–5 scale" },
+    { label: "Mean UX, tasks shown", value: "—", sub: "", id: "uxshown" },
     { label: "Agent cost", value: money(m.total_cost), sub: `${money(m.cost_per_traj)} per run` },
   ];
-  $("kpis").innerHTML = tiles.map((t) => `<div class="kpi"><div class="label">${esc(t.label)}</div><div class="value">${t.value}</div><div class="sub">${esc(t.sub)}</div>${t.bar ? `<div class="bar">${t.bar}</div>` : ""}</div>`).join("");
+  $("kpis").innerHTML = tiles.map((t) => `<div class="kpi"><div class="label">${esc(t.label)}</div><div class="value"${t.id ? ` id="${t.id}"` : ""}>${t.value}</div><div class="sub"${t.id ? ` id="${t.id}-sub"` : ""}>${esc(t.sub)}</div>${t.bar ? `<div class="bar">${t.bar}</div>` : ""}</div>`).join("");
 }
 
 function taskMatches(t, nRuns, q, f) {
@@ -221,7 +222,7 @@ function renderTable(domains) {
   const nRuns = Math.max(1, ...domains.map((d) => d.num_runs));
   const multi = domains.length > 1;
   $("thead").innerHTML = `<tr><th>Task</th>${multi ? "<th>Domain</th>" : ""}<th>Runs</th><th>Pass</th><th title="Sorted lowest first">UX ↑</th><th>Tools</th></tr>`;
-  let rows = [], total = 0;
+  let rows = [], total = 0, shownUx = [];
   for (const d of domains) for (const t of d.tasks) {
     total++;
     if (!taskMatches(t, d.num_runs, q, f)) continue;
@@ -229,6 +230,7 @@ function renderTable(domains) {
     const scored = runs.filter((r) => r.status === "pass" || r.status === "fail");
     const passes = scored.filter((r) => r.status === "pass").length;
     const ux = runs.map((r) => r.ux_score).filter((x) => typeof x === "number");
+    shownUx.push(...ux);
     const tools = runs.map((r) => r.tool_calls).filter((x) => typeof x === "number");
     let cells = "";
     for (let i = 1; i <= d.num_runs; i++) {
@@ -243,6 +245,9 @@ function renderTable(domains) {
   // lowest UX first; tasks with no UX score yet go last
   rows.sort((a, b) => (a.ux === null) - (b.ux === null) || (a.ux ?? 0) - (b.ux ?? 0));
   rows = rows.map((r) => r.html);
+  // mean UX over every scored run of the tasks the search and filter leave in the table
+  $("uxshown").textContent = shownUx.length ? num(shownUx.reduce((a, b) => a + b, 0) / shownUx.length) : "—";
+  $("uxshown-sub").textContent = `${shownUx.length} scored runs in ${rows.length} of ${total} tasks`;
   $("taskcount").textContent = rows.length === total ? `${total}` : `${rows.length} of ${total}`;
   $("tbody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="6"><div class="empty">${total ? "No tasks match this filter." : "No runs found yet. Start run_batch with --output-dir pointing at this folder."}</div></td></tr>`;
 }

@@ -1,0 +1,309 @@
+{
+  "task_id": "117-hard_loyalty_cancel_redemption_before_change",
+  "user_id": "shop_005",
+  "task_summary": "**Task:** Customer shop_005 opens with: \"I used points on this cart, but now I want the phone case removed too. First tell me exactly how many points will come back and what stays in the cart, then do it after I confirm.\" Relevant catalog/policy surface: ProBook Laptop 13 (SP-H102), ClearGrip Slim Case for iPhone 14 (SP-H109). Correct final state: Preview restored points and kept laptop, get consent, cancel loyalty redemption, then remove only the phone case.\n\n**Challenge:** Sequenced loyalty reversal requires a numeric/account preview before mutation. Primary pitfall: Mutates before preview/consent, removes the laptop, or gives vague points narration. Correct behavior: Preview restored points and kept laptop, get consent, cancel loyalty redemption, then remove only the phone case. Novelty: Tests redemption reversal as the primary workflow. Family: loyalty_account.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "previewed_points_and_scope",
+      "kind": "must",
+      "requirement": "Agent previewed the points restoration and stated the laptop would remain before mutating the cart.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "Before any write action, the assistant previewed that cancelling redemption would return exactly 51,700 points and explicitly said the cart would keep 1 ProBook Laptop 13. The only prior tool calls were read-only get_cart/get_policies."
+    },
+    {
+      "id": "got_consent_before_loyalty_case_change",
+      "kind": "must",
+      "requirement": "Agent got consent after the preview before cancelling points/removing the case.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "After giving the preview, the assistant asked, \"Should I cancel the redemption and remove the case?\" The user then explicitly confirmed before any cancel_loyalty_redemption or remove_from_cart call was made."
+    },
+    {
+      "id": "cancelled_before_remove",
+      "kind": "must",
+      "requirement": "Agent cancelled the loyalty redemption before removing the phone case.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The tool call order shows cancel_loyalty_redemption executed first, followed by remove_from_cart."
+    },
+    {
+      "id": "removed_case_kept_laptop",
+      "kind": "must",
+      "requirement": "Agent removed only the phone case and kept the ProBook laptop in the cart.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The remove_from_cart call removed product SP-H109 (the phone case) only. The resulting cart subtotal/total became 999, matching the remaining ProBook Laptop 13 price from the original cart, indicating the laptop was kept."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 5.0,
+  "ux_reasoning": "The agent handled the loyalty reversal exactly as requested: it used read-only lookup first, gave a specific preview of the 51,700 points to be restored, clearly stated that only the phone case would be removed, and explicitly asked for confirmation before making any changes. After the user approved, it executed the two required mutations in the right sequence and summarized the resulting cart and points state clearly. The conversation was efficient with no need for the user to restate scope or correct mistakes. Response length was well calibrated: concise, concrete, and complete for a cart-change decision.",
+  "turns": 2,
+  "tool_calls": 4,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I used points on this cart, but now I want the phone case removed too. First tell me exactly how many points will come back and what stays in the cart, then do it after I confirm."
+    },
+    {
+      "role": "assistant",
+      "content": "Here’s the proposed change, **only after you confirm**:\n\n- Cancel your current points redemption: **51,700 points returned**, removing the $517 loyalty discount.\n- Remove the **ClearGrip Slim Case for iPhone 14** ($35).\n- Keep **1 ProBook Laptop 13** at **$999**, without gift wrap.\n\nYour cart total would be **$999**, with no points applied and no shipping selected.\n\nShould I cancel the redemption and remove the case?",
+      "tool_calls": [
+        {
+          "name": "get_cart",
+          "arguments": {
+            "customer_id": "shop_005"
+          },
+          "result": {
+            "cart_id": "CART-shop_005",
+            "customer_id": "shop_005",
+            "items": [
+              {
+                "cart_item_id": "CI-0001",
+                "product_id": "SP-H102",
+                "product_name": "ProBook Laptop 13",
+                "quantity": 1,
+                "gift_wrap": false,
+                "unit_price": 999,
+                "line_total": 999
+              },
+              {
+                "cart_item_id": "CI-0002",
+                "product_id": "SP-H109",
+                "product_name": "ClearGrip Slim Case for iPhone 14",
+                "quantity": 1,
+                "gift_wrap": false,
+                "unit_price": 35,
+                "line_total": 35
+              }
+            ],
+            "subtotal": 1034,
+            "discount_amount": 0,
+            "gift_wrap_fee": 0,
+            "loyalty_discount": 517,
+            "loyalty_points_redeemed": 51700,
+            "shipping_option": null,
+            "shipping_cost": 0,
+            "total": 517,
+            "applied_promo_codes": []
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "loyalty_redemption"
+          },
+          "result": {
+            "topic": "loyalty_redemption",
+            "summary": "Loyalty points can be redeemed at checkout to offset part of the cart total. 100 points = $1.",
+            "rules": [
+              "Rate: 100 loyalty points = $1.00 off.",
+              "Cap: redemption cannot exceed 50% of the current cart total.",
+              "Minimum redemption: 500 points ($5).",
+              "Stacking: stacks with promo codes and category bundles.",
+              "Restriction: not combinable with the first-time welcome discount.",
+              "Points are debited from the customer's balance at redemption.",
+              "Agent action rule: do NOT call redeem_loyalty_points without an explicit customer-specified amount. You may discuss and recommend redemption in chat, but the write call must come AFTER the customer names a specific number of points."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Yes, please go ahead and cancel the 51,700-point redemption and remove only the phone case. Please keep the ProBook Laptop 13 in the cart."
+    },
+    {
+      "role": "assistant",
+      "content": "Done—**51,700 points have been returned** to your account, and only the phone case was removed.\n\nYour cart still contains **1 ProBook Laptop 13**, totaling **$999**, with no points applied.\n\nYour points balance is now **104,000**.",
+      "tool_calls": [
+        {
+          "name": "cancel_loyalty_redemption",
+          "arguments": {
+            "customer_id": "shop_005"
+          },
+          "result": {
+            "status": "cancelled",
+            "points_credited": 51700,
+            "new_balance": 104000,
+            "cart_subtotal": 1034,
+            "cart_total": 1034
+          }
+        },
+        {
+          "name": "remove_from_cart",
+          "arguments": {
+            "customer_id": "shop_005",
+            "product_id": "SP-H109",
+            "variant_id": ""
+          },
+          "result": {
+            "status": "removed",
+            "cart_id": "CART-shop_005",
+            "product_id": "SP-H109",
+            "variant_id": null,
+            "cart_subtotal": 999,
+            "cart_total": 999
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "70a546fce5108cb4381c6c6c6ea0adccd6e3d91b99b90a14f1c09d1b1f2bc5fc",
+  "agent_name": "StateBenchAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "token_usage": {
+    "input_tokens": 12243,
+    "cached_input_tokens": 9449,
+    "output_tokens": 434,
+    "reasoning_output_tokens": 155,
+    "total_tokens": 12677,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0
+  },
+  "input_tokens": 12243,
+  "cached_input_tokens": 9449,
+  "output_tokens": 434,
+  "reasoning_output_tokens": 155,
+  "total_tokens": 12677,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "customers": {
+        "shop_005": {
+          "loyalty_points": {
+            "old": 52300,
+            "new": 104000
+          }
+        }
+      },
+      "carts": {
+        "CART-shop_005": {
+          "subtotal": {
+            "old": 1034,
+            "new": 999
+          },
+          "total": {
+            "old": 517,
+            "new": 999
+          },
+          "loyalty_points_redeemed": {
+            "old": 51700,
+            "new": 0
+          },
+          "loyalty_discount": {
+            "old": 517,
+            "new": 0
+          },
+          "item_ids": {
+            "old": [
+              "CI-0001",
+              "CI-0002"
+            ],
+            "new": [
+              "CI-0001"
+            ]
+          }
+        }
+      }
+    },
+    "deleted": {
+      "cart_items": {
+        "CI-0002": {
+          "cart_item_id": "CI-0002",
+          "customer_id": "shop_005",
+          "product_id": "SP-H109",
+          "quantity": 1,
+          "gift_wrap": false,
+          "variant_id": null
+        }
+      }
+    }
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_005",
+      "field": "item_ids",
+      "expected_value": [
+        "CI-0001"
+      ]
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_005",
+      "field": "loyalty_discount",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_005",
+      "field": "loyalty_points_redeemed",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_005",
+      "field": "subtotal",
+      "expected_value": 999
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_005",
+      "field": "total",
+      "expected_value": 999
+    },
+    {
+      "entity_type": "customers",
+      "record_key": "shop_005",
+      "field": "loyalty_points",
+      "expected_value": 104000
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 4,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "558947b2ce0b5d90a633e7d44e8599c329a96ac5ed9e43c9d37ffb5e6cf3c055",
+    "judge_ux_quality.md": "0234643a8dcf766c390aff2dc11b2f74f0e13ef7a38b29df70165bd333b82656",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

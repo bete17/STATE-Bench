@@ -1,0 +1,540 @@
+{
+  "task_id": "142-hard_compound_exchange_plus_late_compensation",
+  "user_id": "cust_003",
+  "task_summary": "Shirt arrived late and in the wrong size. Agent must process a size exchange and separately issue late-delivery compensation.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [],
+  "task_completion_pass": 1,
+  "ux_user_control": 2,
+  "ux_score": 3.3,
+  "ux_reasoning": "The agent resolved both issues correctly and the user did not need to restate anything, so effort was very low. However, it executed both the refund and the exchange in the same turn that it first presented the terms, giving the user no chance to approve the $22 compensation and exchange details before state changed. The response itself was concise and easy to scan, but it blurred proposal and completion language and could have more clearly separated the preview from the confirmed outcome. Overall, this was efficient and successful, but control over consequential actions was materially weaker than ideal.",
+  "turns": 1,
+  "tool_calls": 12,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "ORD-7253 arrived late and the shirt is too small. I need the large size and compensation for the delay."
+    },
+    {
+      "role": "assistant",
+      "content": "I’m sorry your order arrived four days late and the shirt doesn’t fit. I can exchange it for the large at no extra charge and issue $22 in delay compensation to your original payment method, including your Gold member benefit.\n\nYour exchange for the Premium Cotton Shirt in Large is confirmed at no extra charge. I’ve also issued $22 in compensation for the late delivery to your original payment method.",
+      "tool_calls": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-7253"
+          },
+          "result": {
+            "order_id": "ORD-7253",
+            "customer_id": "cust_003",
+            "order_date": "2026-06-01T10:00:00",
+            "status": "delivered",
+            "shipping_status": "delivered",
+            "shipping_method": "standard",
+            "shipping_cost": 8,
+            "tracking_number": "TRK73245444",
+            "delivery_date": "2026-07-08T12:00:00",
+            "delivery_promised_date": "2026-07-04T12:00:00",
+            "signature_required": false,
+            "signature_on_file": null,
+            "payment_method": "credit_card",
+            "payment_details": {
+              "credit_card": 67
+            },
+            "subtotal": 59,
+            "discount_code": null,
+            "discount_amount": 0,
+            "total_paid": 67,
+            "is_gift": false,
+            "gift_sender": null,
+            "items": [
+              {
+                "item_id": "ITEM-10255",
+                "order_id": "ORD-7253",
+                "product_id": "PROD-4265",
+                "quantity": 1,
+                "unit_price": 59,
+                "item_status": "delivered",
+                "return_reason": null,
+                "refund_amount": null,
+                "refund_method": null,
+                "restocking_fee": null,
+                "return_label_issued": false,
+                "replacement_item_id": null,
+                "goodwill_credit": 0,
+                "goodwill_credit_method": null,
+                "store_credit_only": false,
+                "product": {
+                  "product_id": "PROD-4265",
+                  "name": "Premium Cotton Shirt",
+                  "category": "clothing",
+                  "price": 59,
+                  "current_price": null,
+                  "return_window_days": 30,
+                  "warranty_months": 0,
+                  "in_stock": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "exchange"
+          },
+          "result": {
+            "topic": "exchange",
+            "rules": {
+              "must_be_different_product": "Exchanges must specify a different product than the original item. Self-swap (exchanging an item for the same product) is not allowed — use process_return for a refund instead.",
+              "same_price": "Exchange for a same-price product: no charge, no refund.",
+              "more_expensive": "Exchange for more expensive item: customer pays price difference.",
+              "cheaper": "Exchange for cheaper item: difference refunded as store credit (not original payment).",
+              "out_of_stock": "If requested item is out of stock: issue store credit for the original item; do not complete the exchange.",
+              "return_window": "Must be within return window (same rules as returns).",
+              "no_price_protection": "No price protection on exchanges (item price at time of purchase applies)."
+            }
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "refund"
+          },
+          "result": {
+            "topic": "refund",
+            "rules": {
+              "amount": {
+                "full_refund": "Full refund for defective, wrong item, or damaged in transit.",
+                "promo_redistribution": "If a promo/coupon was used: discount allocated proportionally by item price. Refund = item_price - (discount * item_price / subtotal).",
+                "outside_window": "Outside return window but within store-credit grace: store credit only.",
+                "shipping_refund": "When refunding shipping (defective/wrong/damaged returns, 6+-days-late compensation), refund the actual shipping cost the customer was charged on the order — read order.shipping_cost and refund that amount. Standard policy: $0 on free-shipping orders (subtotal >= $100), $8 otherwise. NOT for buyer's remorse."
+              },
+              "method": {
+                "original_payment": "Default refund method when item was paid for and is being returned for fault.",
+                "store_credit": "Required for: gift returns (at current product price), outside-window grace returns, and exchange-cheaper differences.",
+                "store_credit_only_constraint": "When a return is issued under the store-credit-only rule (gift return OR outside-window grace), the refund method cannot be changed back to original_payment afterward. process_refund will reject any attempt to flip the method on those returns."
+              },
+              "price_match": "If product price drops within 7 days of delivery, refund the difference (no return required).",
+              "goodwill_credit": "Goodwill credits (e.g., fragile-item damage bonus) are issued as a refund with the credit amount."
+            }
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "shipping"
+          },
+          "result": {
+            "topic": "shipping",
+            "rules": {
+              "not_received": {
+                "under_500": "Delivered but not received (<$500): reship or refund.",
+                "over_500": "Delivered but not received (>=$500): mandatory investigation (3-5 business days).",
+                "signature_on_file": "Delivery with signature on file: claim denied."
+              },
+              "lost_in_transit": {
+                "under_500": "Lost in transit (<$500): immediate reship or refund.",
+                "over_500": "Lost in transit (>=$500): carrier claim required first.",
+                "stuck_7_days": "No tracking update for 7+ days: treat as lost."
+              },
+              "damaged": {
+                "rule": "Damaged in transit: full refund or replacement.",
+                "fragile_bonus": "Fragile items damaged in transit qualify for a separate $10 goodwill credit, issued as a refund in addition to the return refund."
+              },
+              "late_delivery_compensation": {
+                "tiers": {
+                  "1_to_2_days_late": "$5 credit",
+                  "3_to_5_days_late": "$15 credit",
+                  "6_plus_days_late": "Full shipping refund + $15 credit"
+                },
+                "shipping_refund_basis": "When refunding shipping, refund the actual shipping cost the customer was charged on the order — read order.shipping_cost. Standard policy charges $0 on free-shipping orders (subtotal >= $100) and $8 otherwise.",
+                "tier_multipliers": {
+                  "gold": "1.5x multiplier on the base late-delivery credit only (NOT on shipping refund or goodwill). Rounded down (e.g., int(15*1.5) = 22).",
+                  "platinum": "2x multiplier on the base late-delivery credit only. Rounded down."
+                },
+                "repeated_issues": "3+ PRIOR issues in 6 months (not counting current incident): additional $25 goodwill credit.",
+                "loyalty_bonus": "Platinum members with 50+ total orders: one-time $50 loyalty bonus on next compensation claim. Confirm with customer if already redeemed.",
+                "max_cap": "Maximum compensation: 50% of order total (rounded down).",
+                "calculation_order": "1) Compute base credit by days-late tier. 2) Apply tier multiplier to base credit only. 3) Add shipping refund (if 6+ days late) using order.shipping_cost. 4) Add goodwill (if 3+ prior issues or fragile damage). 5) Apply loyalty bonus if eligible. 6) Apply 50%-of-order cap on the sum."
+              }
+            }
+          }
+        },
+        {
+          "name": "search_products",
+          "arguments": {
+            "query": "Premium Cotton Shirt large"
+          },
+          "result": {
+            "query": "Premium Cotton Shirt large",
+            "results": [
+              {
+                "product_id": "PROD-4266",
+                "name": "Premium Cotton Shirt (Large)",
+                "matched_field": "name",
+                "category": "clothing",
+                "subcategory": "shirt",
+                "in_stock": true
+              },
+              {
+                "product_id": "PROD-4265",
+                "name": "Premium Cotton Shirt",
+                "matched_field": "name",
+                "category": "clothing",
+                "subcategory": "shirt",
+                "in_stock": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_customer",
+          "arguments": {
+            "customer_id": "cust_003"
+          },
+          "result": {
+            "customer_id": "cust_003",
+            "name": "Sarah Williams",
+            "email": "sarah.w@example.com",
+            "membership_tier": "gold",
+            "account_created": "2021-11-20",
+            "total_orders": 53,
+            "preferred_refund_method": "original_payment",
+            "store_credit_balance": 45,
+            "has_prime_shipping": true,
+            "benefits": {
+              "return_window_extension": "+15 days",
+              "compensation_multiplier": "1.5x",
+              "restocking_fee_waiver": false,
+              "prime_shipping": true
+            }
+          }
+        },
+        {
+          "name": "get_product_details",
+          "arguments": {
+            "product_id": "PROD-4266"
+          },
+          "result": {
+            "product_id": "PROD-4266",
+            "name": "Premium Cotton Shirt (Large)",
+            "category": "clothing",
+            "subcategory": "shirt",
+            "price": 59,
+            "warranty_months": 0,
+            "return_window_days": 30,
+            "restocking_fee_pct": 0,
+            "weight_lbs": 0.4,
+            "is_fragile": false,
+            "in_stock": true,
+            "current_price": null
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "return"
+          },
+          "result": {
+            "topic": "return",
+            "rules": {
+              "agent_computes_amount": "process_return requires the agent to submit the net refund as `amount` on confirm. Compute it from the preview's component breakdown: base_item_price (after promo redistribution) minus restocking_fee plus restocking_discount minus shipping_clawback minus bulk_clawback minus repeat_surcharge minus paid_return_shipping_fee. The env writes the submitted amount verbatim — skipping a component (e.g. forgetting the Gold restocking discount) produces a wrong refund_amount and fails state scoring.",
+              "windows_by_category": {
+                "electronics": "15-day return window",
+                "clothing": "30-day return window",
+                "kitchen": "30-day return window",
+                "books": "14-day return window",
+                "accessories": "30-day return window"
+              },
+              "window_extensions": {
+                "membership": "Gold/Platinum members get +15 days",
+                "prime": "Prime shipping members get +15 additional days",
+                "seasonal": "Orders placed in November or December extend through January 31 of the following year. Seasonal extension applies if it gives more time than tier/prime extensions.",
+                "store_credit_grace": "Up to 15 days past the return window: store credit only."
+              },
+              "eligibility": {
+                "defective_items": "No window restriction for defective, wrong item, or damaged in transit.",
+                "already_returned": "Items already returned/exchanged/cancelled are ineligible.",
+                "not_as_described": "Use not_as_described only for an unused/unworn item that materially differs from the listing. If the customer wore, washed, altered, or used the item and only dislikes fit, feel, texture, or preference-based qualities, classify the return as changed_mind instead."
+              },
+              "restocking_fee": {
+                "base": "15% restocking fee for opened electronics returned for changed_mind.",
+                "tier_discount": {
+                  "platinum": "Restocking fee fully waived.",
+                  "gold": "50% off the restocking fee.",
+                  "silver": "25% off the restocking fee.",
+                  "standard": "No discount."
+                },
+                "auto_applied": "Restocking fee and any tier discount are folded into the process_return refund amount automatically; the result reports the discount under 'restocking_discount' for transparency.",
+                "completed_returns": "Once a changed-mind return is completed with the applicable restocking fee, do not reverse that fee later as a courtesy or supplemental refund."
+              },
+              "return_shipping_fee": {
+                "low_value": "Orders with subtotal < $50: customer pays $8 return shipping fee.",
+                "free_threshold": "Orders >= $50: free return label provided.",
+                "fault_exempt": "Defective, wrong item, or damaged in transit: always free return shipping.",
+                "deduction": "Return shipping fee, when charged, is deducted from the return refund."
+              },
+              "bulk_purchase_clawback": {
+                "applies_when": "Order originally qualified for a bulk discount (3+ items with a discount code) AND the return drops remaining count below 3.",
+                "amount": "$5 per remaining item, deducted from the return refund.",
+                "no_discount_code": "If order had no discount code, no clawback applies."
+              },
+              "free_shipping_clawback": {
+                "applies_when": "Order originally qualified for free shipping (subtotal >= $100) AND the return drops remaining subtotal below $100.",
+                "amount": "$8 standard shipping fee is deducted from the return refund. This is a flat policy charge, not the original shipping cost (which was $0 on free-shipping orders).",
+                "fault_exempt": "Defective, wrong item, or damaged in transit: no clawback (customer-fault returns only).",
+                "paid_shipping": "If the order did not qualify for free shipping originally (subtotal < $100), no clawback applies."
+              },
+              "repeat_category_surcharge": {
+                "rule": "Returning 2+ items from the same product category in one order: $5 surcharge per additional return (first return in each category is free).",
+                "different_categories": "Returns from different categories do not trigger the surcharge.",
+                "deduction": "Surcharge is deducted from the return refund."
+              }
+            }
+          }
+        },
+        {
+          "name": "process_exchange",
+          "arguments": {
+            "item_id": "ITEM-10255",
+            "new_product_id": "PROD-4266"
+          },
+          "result": {
+            "status": "preview",
+            "item_id": "ITEM-10255",
+            "new_product_id": "PROD-4266",
+            "price_difference": 0,
+            "customer_pays": 0,
+            "store_credit_refund": 0,
+            "reason": "Exchange for same-price item — no charge, no refund"
+          }
+        },
+        {
+          "name": "process_refund",
+          "arguments": {
+            "item_id": "ITEM-10255",
+            "refund_method": "original_payment",
+            "amount": 22
+          },
+          "result": {
+            "status": "preview",
+            "item_id": "ITEM-10255",
+            "refund_amount": 22,
+            "refund_method": "original_payment"
+          }
+        },
+        {
+          "name": "process_refund",
+          "arguments": {
+            "item_id": "ITEM-10255",
+            "refund_method": "original_payment",
+            "amount": 22,
+            "confirm": true
+          },
+          "result": {
+            "status": "refunded",
+            "item_id": "ITEM-10255",
+            "mode": "refund",
+            "refund_amount": 22,
+            "refund_method": "original_payment",
+            "total_goodwill_credit": 0
+          }
+        },
+        {
+          "name": "process_exchange",
+          "arguments": {
+            "item_id": "ITEM-10255",
+            "new_product_id": "PROD-4266",
+            "confirm": true
+          },
+          "result": {
+            "status": "exchanged",
+            "item_id": "ITEM-10255",
+            "new_item_id": "ITEM-10256",
+            "new_product_id": "PROD-4266",
+            "price_difference": 0,
+            "customer_pays": 0,
+            "store_credit_refund": 0
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks, that resolves both issues for me. [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "0b58e108ac16469926ee210774e6e3275049d898d35ea23ef40c13ddfbe829d8",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 1,
+    "model_calls": 7
+  },
+  "token_usage": {
+    "input_tokens": 20208,
+    "cached_input_tokens": 20187,
+    "output_tokens": 464,
+    "reasoning_output_tokens": 21,
+    "total_tokens": 20672,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.018753199999999998,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.018753199999999998
+  },
+  "input_tokens": 20208,
+  "cached_input_tokens": 20187,
+  "output_tokens": 464,
+  "reasoning_output_tokens": 21,
+  "total_tokens": 20672,
+  "cost_usd": 0.018753199999999998,
+  "state_diff": {
+    "created": {
+      "order_items": {
+        "ITEM-10256": {
+          "item_id": "ITEM-10256",
+          "order_id": "ORD-7253",
+          "product_id": "PROD-4266",
+          "quantity": 1,
+          "unit_price": 59,
+          "item_status": "confirmed",
+          "return_reason": null,
+          "refund_amount": null,
+          "refund_method": null,
+          "restocking_fee": null,
+          "return_label_issued": false,
+          "replacement_item_id": null,
+          "goodwill_credit": 0,
+          "goodwill_credit_method": null,
+          "store_credit_only": false
+        }
+      }
+    },
+    "modified": {
+      "order_items": {
+        "ITEM-10255": {
+          "item_status": {
+            "old": "delivered",
+            "new": "exchanged"
+          },
+          "replacement_item_id": {
+            "old": null,
+            "new": "ITEM-10256"
+          },
+          "refund_amount": {
+            "old": null,
+            "new": 22
+          },
+          "refund_method": {
+            "old": null,
+            "new": "original_payment"
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10255",
+      "field": "item_status",
+      "expected_value": "exchanged"
+    },
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10255",
+      "field": "refund_amount",
+      "expected_value": 22
+    },
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10255",
+      "field": "refund_method",
+      "expected_value": "original_payment"
+    },
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10255",
+      "field": "replacement_item_id",
+      "expected_value_from_match": {
+        "entity_type": "order_items",
+        "match_fields": {
+          "order_id": "ORD-7253",
+          "product_id": "PROD-4266",
+          "quantity": 1,
+          "unit_price": 59,
+          "item_status": "confirmed"
+        }
+      }
+    },
+    {
+      "entity_type": "order_items",
+      "match_fields": {
+        "order_id": "ORD-7253",
+        "product_id": "PROD-4266",
+        "quantity": 1,
+        "unit_price": 59,
+        "item_status": "confirmed"
+      },
+      "expected_fields": {
+        "goodwill_credit": 0,
+        "goodwill_credit_method": null,
+        "item_status": "confirmed",
+        "order_id": "ORD-7253",
+        "product_id": "PROD-4266",
+        "quantity": 1,
+        "refund_amount": null,
+        "refund_method": null,
+        "replacement_item_id": null,
+        "restocking_fee": null,
+        "return_label_issued": false,
+        "return_reason": null,
+        "store_credit_only": false,
+        "unit_price": 59
+      }
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 4,
+  "ux_base_score": 3.3,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 1,
+  "ux_tool_call_count": 12,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "246c76f59f3cd0e736da35b9beb985088778ff233287454b8bae674285718c72",
+    "judge_ux_quality.md": "8b6ecae22872ab860d4a54f37e5bd4a6a160033b833cd1b0de6a3673640d7067",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

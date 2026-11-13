@@ -1,0 +1,601 @@
+{
+  "task_id": "52-challenge_insurance_cancel_rebook",
+  "user_id": "user_004",
+  "task_summary": "**Task:** A traveler wants to move a basic-economy booking under a strict cash budget, but the workable path is cancel plus rebook using insurance and points plus cash. Correct resolution: The basic-economy ticket cannot simply be changed but that insurance enables a free cancellation, creating a cancel-and-rebook workaround.\n\n**Challenge:** The agent discovers the cancel-rebook workaround, explains why the nonstop option is still over budget, and steers the user to the cheaper 1-stop points-plus-cash booking that actually fits.",
+  "state_requirements_met": 0,
+  "state_requirements_reasoning": "State requirements failed: unresolved_match_requirements=1; missing_assertions=4",
+  "state_requirements_details": {
+    "unresolved_match_requirements": [
+      {
+        "requirement": {
+          "entity_type": "bookings",
+          "match_fields": {
+            "user_id": "user_004",
+            "flight_id": "AS100",
+            "status": "confirmed",
+            "payment_method": "points_plus_cash",
+            "cash_amount": 90,
+            "points_used": 15000,
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "paid_checked_bags": 0
+          },
+          "expected_fields": {
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "add_wifi": false,
+            "booked_at": "2026-06-15T10:00:00",
+            "booking_id": "BK-1001",
+            "cabin_class": "economy",
+            "cancellation_fee": null,
+            "cash_amount": 90,
+            "change_fee": null,
+            "delay_compensation": null,
+            "fare_difference": null,
+            "flight_id": "AS100",
+            "meal_preference": "standard",
+            "paid_checked_bags": 0,
+            "payment_method": "points_plus_cash",
+            "points_used": 15000,
+            "price_paid": 90,
+            "refund_amount": null,
+            "seat_type": "window",
+            "status": "confirmed",
+            "user_id": "user_004"
+          }
+        },
+        "error": "match_fields resolved to zero or multiple records",
+        "match_count": 0,
+        "matched_record_keys": []
+      }
+    ],
+    "missing_assertions": [
+      {
+        "entity_type": "bookings",
+        "record_key": "BK-1000",
+        "field": "cancellation_fee",
+        "value": 0
+      },
+      {
+        "entity_type": "bookings",
+        "record_key": "BK-1000",
+        "field": "refund_amount",
+        "value": 175
+      },
+      {
+        "entity_type": "bookings",
+        "record_key": "BK-1000",
+        "field": "status",
+        "value": "cancelled"
+      },
+      {
+        "entity_type": "users",
+        "record_key": "user_004",
+        "field": "loyalty_points",
+        "value": 0
+      }
+    ]
+  },
+  "task_requirements_met": 0,
+  "task_requirements_details": [
+    {
+      "id": "state_cancel_rebook_workaround_discovered",
+      "kind": "must",
+      "requirement": "Agent must explain that the basic-economy ticket cannot simply be changed but that insurance enables a free cancellation, creating a cancel-and-rebook workaround.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly said the ticket is Basic Economy so it cannot be changed directly, and also said the travel insurance allows cancellation with a full refund / $0 cancellation fee, which establishes the cancel-and-rebook workaround."
+    },
+    {
+      "id": "state_points_budget_math_explained",
+      "kind": "must",
+      "requirement": "Agent must explain that 15,000 points cover $150 domestically, making the $280 nonstop option require $130 cash and the $240 one-stop option require only $90 cash.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The agent correctly explained that 15,000 points are worth $150 domestically and that the $240 one-stop option would require $90 cash, but never explicitly stated that the $280 nonstop would require $130 cash. Instead, the nonstop was described as '$105 more before add-ons' using refund math, not the required points-plus-cash math."
+    },
+    {
+      "id": "state_budget_fit_recommendation",
+      "kind": "must",
+      "requirement": "Agent must recommend the one-stop June 23 option because it is the only rebooking path that stays within the user's $100 cash budget.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The agent suggested the Alaska one-stop option, but did not clearly recommend it as the only rebooking path that fits the user's $100 cash budget. The conversation never gave the required nonstop $130 cash comparison, and later the agent said it could not confirm the insurance-inclusive total stayed within the $100 limit."
+    }
+  ],
+  "task_completion_pass": 0,
+  "ux_user_control": 3,
+  "ux_score": 2.7,
+  "ux_reasoning": "The agent kept strong execution boundaries: it used a safe cancellation preview, repeatedly stated that nothing had been changed, and refused to cancel or rebook without a verified total. However, it initially framed the one-stop option as staying within the user's budget by netting the refund against the new fare, before surfacing the separate-refund timing, points usage, and the unverified cost of adding insurance, which made consent less fully informed. The user had to do meaningful re-steering by asking for the full breakdown, prompting the points analysis, and pushing on the insurance-inclusive cash cap multiple times. Responses were generally clear and well-structured, but the early omission of decisive budget details meant the interaction was not fully decision-ready without follow-up.",
+  "turns": 6,
+  "tool_calls": 10,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hi, I need to change my flight BK-1000 to June 23 instead. I have about $100 to work with for any fees or price differences."
+    },
+    {
+      "role": "assistant",
+      "content": "Your ticket is **Basic Economy**, so it can’t be changed directly. However, your travel insurance allows cancellation with a **full $175 refund**.\n\nThe cheapest replacement on **June 23, LAX → DFW**, is:\n- **Alaska AS100:** departs 4:45 PM, arrives 8:16 PM\n- **1 stop**\n- **$240 fare** — **$65 more** after your refund, before any new insurance or other add-ons\n\nThe cheapest nonstop is $280, already $105 more before add-ons.\n\nNothing has been changed. Would you like to pursue the one-stop option, keeping the total additional cost within $100?",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_004",
+            "flight_id": "WN100",
+            "status": "confirmed",
+            "cabin_class": "basic_economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "price_paid": 175,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "LAX",
+            "destination": "DFW",
+            "departure_time": "2026-06-20T10:30:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "basic_economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "basic_economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "LAX",
+            "destination": "DFW",
+            "date": "2026-06-23"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "UA100",
+                "airline_code": "UA",
+                "origin": "LAX",
+                "destination": "DFW",
+                "departure_time": "2026-06-23T09:00:00",
+                "arrival_time": "2026-06-23T14:03:00",
+                "duration_minutes": 303,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 465,
+                  "business": 850
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              },
+              {
+                "flight_id": "DL100",
+                "airline_code": "DL",
+                "origin": "LAX",
+                "destination": "DFW",
+                "departure_time": "2026-06-23T10:45:00",
+                "arrival_time": "2026-06-23T16:01:00",
+                "duration_minutes": 316,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 280,
+                  "business": 700
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              },
+              {
+                "flight_id": "AS100",
+                "airline_code": "AS",
+                "origin": "LAX",
+                "destination": "DFW",
+                "departure_time": "2026-06-23T16:45:00",
+                "arrival_time": "2026-06-23T20:16:00",
+                "duration_minutes": 211,
+                "stops": 1,
+                "cabin_prices": {
+                  "economy": 240,
+                  "business": 600
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              },
+              {
+                "flight_id": "DL101",
+                "airline_code": "DL",
+                "origin": "LAX",
+                "destination": "DFW",
+                "departure_time": "2026-06-23T20:45:00",
+                "arrival_time": "2026-06-23T23:37:00",
+                "duration_minutes": 172,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 470,
+                  "business": 617
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "cancellation_fee": 0,
+            "refund_amount": 175,
+            "reason": "Travel insurance covers cancellation"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Maybe, but before I agree I need the full breakdown. Can you confirm BK-1000 would be cancelled with **no cancellation fee**, and show the **replacement cost, any points option using my 15,000 points, the remaining cash amount**, plus the **airline, time range, and max stops** for the June 23 option?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—the cancellation preview confirms **BK-1000 would have a $0 cancellation fee and a $175 refund**, because your existing travel insurance covers cancellation. **Nothing has been cancelled or booked.**\n\n### June 23 replacement\n- **Flight:** Alaska Airlines **AS100**, LAX → DFW\n- **Cabin/fare:** Economy, **$240**\n- **Departure:** 4:45 PM — **afternoon time range (12–5 PM)**\n- **Arrival:** 8:16 PM\n- **Max stops filter:** 1; this flight has **1 stop**\n\n### Payment breakdown\nYour confirmed **15,000 points** are worth **$150** on this domestic flight.\n\n| | Cash only | Use all 15,000 points |\n|---|---:|---:|\n| Replacement fare | $240 | $240 |\n| Points applied | 0 | 15,000 = $150 |\n| **Cash required for replacement** | **$240** | **$90** |\n| Separate refund from BK-1000 | $175 | $175 |\n| Net cash outlay after refund | **$65** | **$85 back overall**, plus 15,000 points spent |\n\nThese figures cover the replacement fare only—**no new insurance or other paid add-ons are included**. The $175 is a separate refund, not an instant credit toward checkout; its timing hasn’t been confirmed.\n\nUsing points keeps the replacement’s cash payment at **$90**, within your $100 budget, provided you don’t add paid extras.",
+      "tool_calls": [
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_004"
+          },
+          "result": {
+            "user_id": "user_004",
+            "name": "Noah Brown",
+            "email": "noah.brown@example.com",
+            "loyalty_tier": "silver",
+            "loyalty_points": 15000
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "loyalty"
+          },
+          "result": {
+            "topic": "loyalty_points",
+            "rules": {
+              "minimum_redemption": "1,000 points minimum to redeem",
+              "domestic_rate": "1 point = $0.01 (100 points = $1)",
+              "international_rate": "1 point = $0.015 (100 points = $1.50)",
+              "rounding": "Points used are rounded to the nearest 100",
+              "max_coverage": "Points can cover up to 100% of flight price"
+            },
+            "applicable_loyalty_tier": "basic",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "cancel",
+            "cabin_class": "basic_economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "cancellation",
+            "rules": {
+              "free_cancellation_window": "Full refund within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not cancellable after free window (unless insured)",
+              "economy_domestic": "Cancellation fee: max($50, 15% of ticket price)",
+              "economy_international": "Cancellation fee: max($75, 20% of ticket price)",
+              "business_domestic": "Cancellation fee: 5% of ticket price",
+              "business_international": "Cancellation fee: 8% of ticket price",
+              "first": "Free cancellation",
+              "insurance": "Travel insurance covers cancellation regardless of cabin class",
+              "route_type_matters": "Fees differ by route type (domestic vs international). Check flight route_type."
+            },
+            "applicable_cabin_class": "basic_economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "loyalty",
+            "loyalty_tier": "silver",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "loyalty_points",
+            "rules": {
+              "minimum_redemption": "1,000 points minimum to redeem",
+              "domestic_rate": "1 point = $0.01 (100 points = $1)",
+              "international_rate": "1 point = $0.015 (100 points = $1.50)",
+              "rounding": "Points used are rounded to the nearest 100",
+              "max_coverage": "Points can cover up to 100% of flight price"
+            },
+            "applicable_loyalty_tier": "silver",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "LAX",
+            "destination": "DFW",
+            "date": "2026-06-23",
+            "airline": "AS",
+            "time_range": "afternoon",
+            "max_stops": 1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "AS100",
+                "airline_code": "AS",
+                "origin": "LAX",
+                "destination": "DFW",
+                "departure_time": "2026-06-23T16:45:00",
+                "arrival_time": "2026-06-23T20:16:00",
+                "duration_minutes": 211,
+                "stops": 1,
+                "cabin_prices": {
+                  "economy": 240,
+                  "business": 600
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks, that helps. Before I approve it, can you confirm the full preview is exactly this: **BK-1000 cancelled with no cancellation fee**, then a **new June 23 Alaska one-stop in the afternoon** using **15,000 points + $90 cash**, and that the new booking will use my profile preferences: **standard meal, window seat, no Wi‑Fi, no extra legroom, and insurance added**?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Not exactly—the $90 cash quote did not include insurance.** I can confirm:\n\n- **BK-1000:** cancellation preview shows **$0 cancellation fee** and a **$175 refund**.\n- **Replacement:** June 23, Alaska **AS100**, LAX → DFW, **one stop**, departing **4:45 PM (afternoon)**.\n- **Fare-only payment:** **15,000 points + $90 cash**.\n\nThe new booking would explicitly request your listed preferences: **standard meal, window seat, no Wi‑Fi, no extra legroom, and insurance added**. Those also match your current booking.\n\nHowever, I haven’t verified the new insurance premium, so I **cannot confirm that insurance-inclusive total is still $90 cash or within your $100 limit**. The available tools don’t provide a new-booking price preview.\n\n**Nothing has been cancelled, booked, or charged.**",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "I can’t approve it yet then. Since insurance needs to be added, I need a clear preview that **BK-1000 cancels with no fee** and that the **new June 23 Alaska afternoon one-stop** can be booked with **15,000 points and no more than $100 cash total including insurance**, using **standard meal, window seat, no Wi‑Fi, no extra legroom, and insurance added**."
+    },
+    {
+      "role": "assistant",
+      "content": "I understand—**you have not approved any changes**, and I won’t cancel or book anything without a verified total.\n\nHere’s what is confirmed versus still unverified:\n\n| Item | Preview |\n|---|---|\n| Cancel BK-1000 | **$0 cancellation fee; $175 refund** |\n| Replacement | **June 23, Alaska AS100**, LAX → DFW |\n| Schedule | **4:45 PM departure (afternoon), one stop** |\n| Economy fare | **$240** |\n| Redeem 15,000 points | **$150 toward the fare** |\n| Cash before insurance | **$90** |\n| Cash including insurance | **Not verified**—insurance must cost **$10 or less** to meet your $100 limit |\n\nThe requested booking settings are **standard meal, window seat, no Wi‑Fi, no extra legroom, and insurance added**.\n\nUnfortunately, the available tools don’t offer a new-booking preview that quotes the insurance premium. I therefore **cannot honestly confirm that this meets your insurance-inclusive $100 cash cap**, and I won’t create a booking just to discover the price. Your existing booking remains unchanged.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Understood. Is there any other June 23 workaround you can check that still gets me onto that date within my budget—maybe another one-stop option where 15,000 points plus insurance would keep the cash at $100 or less?"
+    },
+    {
+      "role": "assistant",
+      "content": "I checked all airlines for **June 23, LAX → DFW, with up to one stop and fares at $250 or less**. Only the same option was returned:\n\n- **Alaska AS100:** 4:45 PM departure, one stop\n- **Economy fare:** $240\n- **15,000 points:** covers $150\n- **Remaining cash:** $90 **before insurance**\n\nWith your points, the maximum total price that fits your cash limit is **$250 including insurance**. That leaves only **$10 for insurance** on this flight, and I still can’t verify the premium with the available tools.\n\nSo, **I found no cheaper alternative and can’t confirm an insurance-inclusive option within $100 cash**. Your existing booking remains unchanged.\n\nWould you be open to a nearby departure or arrival airport? That would let me check additional options, although ground transportation could add costs.",
+      "tool_calls": [
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "LAX",
+            "destination": "DFW",
+            "date": "2026-06-23",
+            "max_stops": 1,
+            "max_price": 250
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "AS100",
+                "airline_code": "AS",
+                "origin": "LAX",
+                "destination": "DFW",
+                "departure_time": "2026-06-23T16:45:00",
+                "arrival_time": "2026-06-23T20:16:00",
+                "duration_minutes": 211,
+                "stops": 1,
+                "cabin_prices": {
+                  "economy": 240,
+                  "business": 600
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I’d rather stick with LAX to DFW for now. Since you can’t verify an insurance-inclusive June 23 option within my $100 cash limit, I can’t approve any cancellation or rebooking."
+    },
+    {
+      "role": "assistant",
+      "content": "Understood. **BK-1000 remains confirmed and unchanged.** No cancellation, replacement booking, points redemption, or charge has been made.\n\nWe’ll keep LAX → DFW and your **$100 cash limit including insurance** as firm requirements for any future option.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Okay, thanks for checking. Please leave BK-1000 as is for now. [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 6,
+    "model_calls": 12
+  },
+  "token_usage": {
+    "input_tokens": 48971,
+    "cached_input_tokens": 48935,
+    "output_tokens": 1808,
+    "reasoning_output_tokens": 265,
+    "total_tokens": 50779,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.039143,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.039143
+  },
+  "input_tokens": 48971,
+  "cached_input_tokens": 48935,
+  "output_tokens": 1808,
+  "reasoning_output_tokens": 265,
+  "total_tokens": 50779,
+  "cost_usd": 0.039143,
+  "state_diff": {
+    "created": {},
+    "modified": {},
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "cancellation_fee",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "refund_amount",
+      "expected_value": 175
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "status",
+      "expected_value": "cancelled"
+    },
+    {
+      "entity_type": "users",
+      "record_key": "user_004",
+      "field": "loyalty_points",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "bookings",
+      "match_fields": {
+        "user_id": "user_004",
+        "flight_id": "AS100",
+        "status": "confirmed",
+        "payment_method": "points_plus_cash",
+        "cash_amount": 90,
+        "points_used": 15000,
+        "cabin_class": "economy",
+        "seat_type": "window",
+        "meal_preference": "standard",
+        "add_wifi": false,
+        "add_extra_legroom": false,
+        "add_insurance": true,
+        "paid_checked_bags": 0
+      },
+      "expected_fields": {
+        "add_extra_legroom": false,
+        "add_insurance": true,
+        "add_wifi": false,
+        "booked_at": "2026-06-15T10:00:00",
+        "booking_id": "BK-1001",
+        "cabin_class": "economy",
+        "cancellation_fee": null,
+        "cash_amount": 90,
+        "change_fee": null,
+        "delay_compensation": null,
+        "fare_difference": null,
+        "flight_id": "AS100",
+        "meal_preference": "standard",
+        "paid_checked_bags": 0,
+        "payment_method": "points_plus_cash",
+        "points_used": 15000,
+        "price_paid": 90,
+        "refund_amount": null,
+        "seat_type": "window",
+        "status": "confirmed",
+        "user_id": "user_004"
+      }
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 2,
+  "ux_response_density": 3,
+  "ux_base_score": 2.7,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 6,
+  "ux_tool_call_count": 10,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

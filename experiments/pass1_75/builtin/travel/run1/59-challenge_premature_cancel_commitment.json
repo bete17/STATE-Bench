@@ -1,0 +1,734 @@
+{
+  "task_id": "59-challenge_premature_cancel_commitment",
+  "user_id": "user_002",
+  "task_summary": "**Task:** User wants the cheapest way to move an existing booking to June 22, but canceling too early would lock in a worse outcome. Correct resolution: Agent must search or otherwise compare the June 22 options before committing to cancellation, rather than canceling first and shopping later.\n\n**Challenge:** The agent searches and compares costs before committing, recognizes that changing to the $480 red-eye is cheaper than canceling and rebooking, and recommends the lower-total-cost path.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "search_before_commitment",
+      "kind": "must",
+      "requirement": "Agent must search or otherwise compare the June 22 options before committing to cancellation, rather than canceling first and shopping later.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent searched June 22 flight options and used non-mutating change previews before any executed cancellation. The only cancellation before approval was a preview (confirm=false), and the actual cancellation happened later after the user agreed."
+    },
+    {
+      "id": "cancel_rebook_beats_change_math",
+      "kind": "must",
+      "requirement": "Agent must explain that changing to the $480 red-eye leaves the changed booking at $630 total ($480 fare plus $150 change fee, $30 more than the original), while canceling and rebooking the same $480 red-eye yields a $510 refund after a $90 cancellation fee and an effective total of $570, so canceling and rebooking is cheaper by $60.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly gave the required math: change to the $480 red-eye with a $150 change fee results in a $630 total and $30 extra versus the original $600; canceling gives a $510 refund after a $90 fee, and rebooking the $480 fare yields a $570 effective total, making cancel-and-rebook cheaper by $60."
+    },
+    {
+      "id": "recommend_cancel_rebook_path",
+      "kind": "must",
+      "requirement": "Agent must recommend the cheaper cancel-and-rebook path rather than steering the user toward the direct change path.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly recommended the cheaper path by stating, 'Canceling and rebooking is $60 cheaper than changing,' and then proceeded with the cancel-and-rebook option after the user approved it."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.61,
+  "ux_reasoning": "The agent kept the exploratory phase read-only, used preview calls for both changing and canceling, explicitly said nothing had been changed, and only executed the new booking plus cancellation after the user gave conditional approval. It also handled the destructive path safely by creating the replacement booking first and then canceling the original, while preserving the stated preferences and summarizing the final state clearly. The main UX blemish is that the user had to ask a follow-up to get the direct cancel-versus-rebook comparison instead of receiving the full cheapest-path comparison upfront, and the hidden tool trace shows some redundant search attempts. Still, the visible responses were concise, decision-ready, and included clear cost math, flight details, and confirmation of unchanged preferences.",
+  "turns": 4,
+  "tool_calls": 21,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I need to move my flight BK-1000 to June 22. I'm hoping to find something cheaper — what are my options? My user ID is user_002."
+    },
+    {
+      "role": "assistant",
+      "content": "The lowest-priced option for **June 22, ORD → LAX** is **Southwest WN100 at 9:45 p.m.** Its $480 economy fare is $120 cheaper than your current fare, but the **$150 change fee means you’d still pay $30 extra**.\n\nAll options below are nonstop, in economy:\n\n| Flight | Departure | Fare | Extra cost to change* |\n|---|---|---:|---:|\n| **Southwest WN100** | **9:45 p.m.** | **$480** | **$30** |\n| United UA101 | 11:30 a.m. | $650 | $200 |\n| Delta DL100 | 1:15 p.m. | $680 | $230 |\n| American AA100 | 5:00 p.m. | $700 | $250 |\n\n*Includes the $150 change fee and fare difference against your existing $600 booking.*\n\nSouthwest arrives the following day, **June 23**. If you prefer an earlier departure, United is the next-cheapest option.\n\nI haven’t changed your booking. Would you like to proceed with one of these?",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_002",
+            "flight_id": "UA100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "vegetarian",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "price_paid": 600,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-05T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "LAX",
+            "departure_time": "2026-06-18T09:30:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "early_morning",
+            "max_stops": -1,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "morning",
+            "max_stops": -1,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "afternoon",
+            "max_stops": -1,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "evening",
+            "max_stops": -1,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "red_eye",
+            "max_stops": -1,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_002"
+          },
+          "result": {
+            "user_id": "user_002",
+            "name": "Liam Johnson",
+            "email": "liam.johnson@example.com",
+            "loyalty_tier": "basic",
+            "loyalty_points": 5000
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "early_morning",
+            "max_stops": 2,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "morning",
+            "max_stops": 2,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "UA101",
+                "airline_code": "UA",
+                "origin": "ORD",
+                "destination": "LAX",
+                "departure_time": "2026-06-22T11:30:00",
+                "arrival_time": "2026-06-22T15:36:00",
+                "duration_minutes": 246,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 650,
+                  "business": 1625
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "afternoon",
+            "max_stops": 2,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "DL100",
+                "airline_code": "DL",
+                "origin": "ORD",
+                "destination": "LAX",
+                "departure_time": "2026-06-22T13:15:00",
+                "arrival_time": "2026-06-22T17:02:00",
+                "duration_minutes": 227,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 680,
+                  "business": 1700
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "evening",
+            "max_stops": 2,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "AA100",
+                "airline_code": "AA",
+                "origin": "ORD",
+                "destination": "LAX",
+                "departure_time": "2026-06-22T17:00:00",
+                "arrival_time": "2026-06-22T20:08:00",
+                "duration_minutes": 188,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 700,
+                  "business": 1750
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "LAX",
+            "date": "2026-06-22",
+            "airline": "",
+            "time_range": "red_eye",
+            "max_stops": 2,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "WN100",
+                "airline_code": "WN",
+                "origin": "ORD",
+                "destination": "LAX",
+                "departure_time": "2026-06-22T21:45:00",
+                "arrival_time": "2026-06-23T02:32:00",
+                "duration_minutes": 287,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 480,
+                  "business": 1200
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "loyalty_tier": "basic",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "WN100",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "vegetarian",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "WN100",
+            "change_fee": 150,
+            "fare_difference": -120,
+            "price_paid": 630
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "UA101",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "vegetarian",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "UA101",
+            "change_fee": 150,
+            "fare_difference": 50,
+            "price_paid": 800
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "DL100",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "vegetarian",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "DL100",
+            "change_fee": 150,
+            "fare_difference": 80,
+            "price_paid": 830
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "AA100",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "vegetarian",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "AA100",
+            "change_fee": 150,
+            "fare_difference": 100,
+            "price_paid": 850
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — before I approve anything, can you show me a side-by-side total-cost comparison for the **$480 red-eye** if I **change** the booking versus **cancel and rebook** it? Please include the **change fee, cancellation fee, refund amount, new fare, and effective total**, and confirm the **airline, time range, and number of stops** for that option."
+    },
+    {
+      "role": "assistant",
+      "content": "The **$480 red-eye is Southwest Airlines flight WN100**, departing **June 22 at 9:45 p.m.**, with **0 stops (nonstop)**. It falls in the **red-eye time range (9 p.m.–5 a.m.)** and arrives June 23.\n\nHere’s the comparison against the **$600 you already paid**:\n\n| Cost item | Change existing booking | Cancel and rebook |\n|---|---:|---:|\n| New economy fare | $480 | $480 |\n| Change fee | $150 | $0 |\n| Cancellation fee | $0 | $90 |\n| Refund from original booking | $0 — existing payment applied to change | $510 |\n| Net additional payment / savings | **$30 additional** | **$30 net savings** |\n| **Effective total cost** | **$630** | **$570** |\n\n**Calculations**\n- **Change:** $600 already paid − $120 fare reduction + $150 change fee = **$630**.\n- **Cancel and rebook:** $600 already paid − $510 refund + $480 new fare = **$570**.\n\n**Canceling and rebooking is $60 cheaper than changing**, assuming the $480 fare remains available when rebooked. You would pay $480 for the new ticket and receive the $510 refund separately; the preview does not specify refund timing.\n\nThese are previews only—**nothing has been changed, canceled, or booked**.",
+      "tool_calls": [
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "cancellation_fee": 90,
+            "refund_amount": 510,
+            "reason": "Economy cancellation fee: max($50, 15% of $600) = $90"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "That helps. Since cancel-and-rebook is cheaper and still within my budget, I’m open to that **for the Southwest red-eye**.\n\nBefore you do it, please go ahead only if you can keep the replacement booking aligned with my preferences: **economy, window seat, vegetarian meal, no Wi‑Fi, no extra legroom, and no insurance**."
+    },
+    {
+      "role": "assistant",
+      "content": "Done—your replacement booking is confirmed, and I verified all your preferences before canceling the original.\n\n**New booking: BK-1001**\n- **Southwest WN100:** June 22 at **9:45 p.m.**\n- **Route:** ORD → LAX, nonstop red-eye; arrival June 23\n- **Preferences confirmed:** Economy, window seat, vegetarian meal, no Wi‑Fi, no extra legroom, no insurance\n- **Fare charged:** $480 by credit card\n\n**Original booking BK-1000:** Canceled\n- Cancellation fee: **$90**\n- Refund: **$510**\n\nYour **effective total cost is $570**—$30 less than your original $600 booking and $60 less than changing it.",
+      "tool_calls": [
+        {
+          "name": "create_booking",
+          "arguments": {
+            "flight_id": "WN100",
+            "user_id": "user_002",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "payment_method": "credit_card",
+            "cash_amount": 0,
+            "points_used": 0,
+            "meal_preference": "vegetarian",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "paid_checked_bags": 0
+          },
+          "result": {
+            "status": "confirmed",
+            "booking_id": "BK-1001",
+            "flight_id": "WN100",
+            "cabin_class": "economy",
+            "price": 480,
+            "payment_method": "credit_card"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1001"
+          },
+          "result": {
+            "booking_id": "BK-1001",
+            "user_id": "user_002",
+            "flight_id": "WN100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "vegetarian",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "price_paid": 480,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 480,
+            "booked_at": "2026-06-15T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "LAX",
+            "departure_time": "2026-06-22T21:45:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": true
+          },
+          "result": {
+            "status": "cancelled",
+            "booking_id": "BK-1000",
+            "refund_amount": 510,
+            "cancellation_fee": 90,
+            "reason": "Economy cancellation fee: max($50, 15% of $600) = $90"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — just to confirm, the replacement is definitely **Southwest WN100 red-eye, nonstop**, and the final booking has **economy, window, vegetarian, no Wi‑Fi, no extra legroom, and no insurance**, right? If so, that all looks good."
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—confirmed. **BK-1001** is **Southwest WN100**, the **nonstop red-eye** from ORD to LAX departing **June 22 at 9:45 p.m.**\n\nI verified the final booking has:\n- **Economy**\n- **Window seat**\n- **Vegetarian meal**\n- **No Wi‑Fi**\n- **No extra legroom**\n- **No insurance**\n\nYou’re all set.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "StateBenchAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "token_usage": {
+    "input_tokens": 58548,
+    "cached_input_tokens": 51974,
+    "output_tokens": 2186,
+    "reasoning_output_tokens": 129,
+    "total_tokens": 60734,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0
+  },
+  "input_tokens": 58548,
+  "cached_input_tokens": 51974,
+  "output_tokens": 2186,
+  "reasoning_output_tokens": 129,
+  "total_tokens": 60734,
+  "state_diff": {
+    "created": {
+      "bookings": {
+        "BK-1001": {
+          "booking_id": "BK-1001",
+          "user_id": "user_002",
+          "flight_id": "WN100",
+          "status": "confirmed",
+          "cabin_class": "economy",
+          "seat_type": "window",
+          "meal_preference": "vegetarian",
+          "add_wifi": false,
+          "add_extra_legroom": false,
+          "add_insurance": false,
+          "price_paid": 480,
+          "payment_method": "credit_card",
+          "points_used": 0,
+          "cash_amount": 480,
+          "booked_at": "2026-06-15T10:00:00",
+          "cancellation_fee": null,
+          "refund_amount": null,
+          "change_fee": null,
+          "fare_difference": null,
+          "delay_compensation": null,
+          "paid_checked_bags": 0
+        }
+      }
+    },
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "status": {
+            "old": "confirmed",
+            "new": "cancelled"
+          },
+          "refund_amount": {
+            "old": null,
+            "new": 510
+          },
+          "cancellation_fee": {
+            "old": null,
+            "new": 90
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "cancellation_fee",
+      "expected_value": 90
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "refund_amount",
+      "expected_value": 510
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "status",
+      "expected_value": "cancelled"
+    },
+    {
+      "entity_type": "bookings",
+      "match_fields": {
+        "user_id": "user_002",
+        "flight_id": "WN100",
+        "status": "confirmed",
+        "payment_method": "credit_card",
+        "cash_amount": 480,
+        "points_used": 0,
+        "cabin_class": "economy",
+        "seat_type": "window",
+        "meal_preference": "vegetarian",
+        "add_wifi": false,
+        "add_extra_legroom": false,
+        "add_insurance": false,
+        "paid_checked_bags": 0
+      },
+      "expected_fields": {
+        "add_extra_legroom": false,
+        "add_insurance": false,
+        "add_wifi": false,
+        "booked_at": "2026-06-15T10:00:00",
+        "booking_id": "BK-1001",
+        "cabin_class": "economy",
+        "cancellation_fee": null,
+        "cash_amount": 480,
+        "change_fee": null,
+        "delay_compensation": null,
+        "fare_difference": null,
+        "flight_id": "WN100",
+        "meal_preference": "vegetarian",
+        "paid_checked_bags": 0,
+        "payment_method": "credit_card",
+        "points_used": 0,
+        "price_paid": 480,
+        "refund_amount": null,
+        "seat_type": "window",
+        "status": "confirmed",
+        "user_id": "user_002"
+      }
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 4,
+  "ux_response_density": 5,
+  "ux_base_score": 4.7,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.09,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 4,
+  "ux_tool_call_count": 21,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 9,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

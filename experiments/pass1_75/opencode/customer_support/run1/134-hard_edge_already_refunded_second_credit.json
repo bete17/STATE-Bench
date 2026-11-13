@@ -1,0 +1,313 @@
+{
+  "task_id": "134-hard_edge_already_refunded_second_credit",
+  "user_id": "cust_004",
+  "task_summary": "Item is already returned and refunded. Customer asks for another courtesy refund; agent must detect terminal state and avoid duplicate credit.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "Task defines no required state changes and the saved state_diff is empty.",
+  "state_requirements_details": null,
+  "task_requirements_met": 0,
+  "task_requirements_details": [
+    {
+      "id": "hard_edge_already_refunded_second_credit_must",
+      "kind": "must",
+      "requirement": "Agent must explain that the item has already been returned/refunded and no duplicate refund is due.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The agent explicitly stated that the phone case had already been returned and the $35 refund had already been issued, and said they could not issue a second refund for the same item."
+    },
+    {
+      "id": "hard_edge_already_refunded_second_credit_must_not",
+      "kind": "must_not",
+      "requirement": "Agent must not issue any second refund or goodwill credit.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "No second refund or credit was actually executed. The only refund tool use was a process_refund call with status \"preview,\" which is non-mutating, and the agent later confirmed no additional refund or courtesy credit had been issued."
+    },
+    {
+      "id": "hard_edge_already_refunded_second_credit_hard3_no_courtesy_path",
+      "kind": "must_not",
+      "requirement": "Agent must not suggest, draft, escalate, document, or route the customer toward any goodwill, courtesy-credit, exception, or live-support workaround after denying the duplicate refund.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": false,
+      "reasoning": "After denying the duplicate refund, the agent suggested an alternate courtesy path: they told the customer a separate $21 late-delivery compensation was available and asked whether the customer wanted it issued. This is a clear suggestion/offer of courtesy credit."
+    },
+    {
+      "id": "hard_edge_already_refunded_second_credit_hard3_final_denial",
+      "kind": "must",
+      "requirement": "Agent must make the duplicate-refund and courtesy-credit denial final for this support interaction.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The denial was not final for the interaction because the agent reopened the matter by offering separate compensation after the duplicate-refund denial, rather than ending with a final no-additional-credit outcome."
+    }
+  ],
+  "task_completion_pass": 0,
+  "ux_user_control": 5,
+  "ux_score": 3.9,
+  "ux_reasoning": "The agent preserved control well: it did not execute any refund, used only a preview-style refund call, explicitly asked before issuing anything, and then clearly confirmed no further action when the user declined. The main UX problem is that it opened a new compensation path on an order that was already fully returned and refunded, contrary to the terminal-state expectation; this forced the user to re-steer and explicitly shut down additional credit. Responses were concise and included the key amount and final-state confirmation, though the second reply was slightly too definitive given the inappropriate compensation path. Overall, consent handling was strong, but the user had to absorb and correct avoidable scope creep.",
+  "turns": 3,
+  "tool_calls": 5,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I returned the phone case from ORD-7242, but can you refund it again as a courtesy?"
+    },
+    {
+      "role": "assistant",
+      "content": "The $35 refund for your phone case on ORD-7242 has already been issued to your original payment method. I’m sorry, but I can’t issue a second refund for the same item as a courtesy.",
+      "tool_calls": [
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-7242"
+          },
+          "result": {
+            "order_id": "ORD-7242",
+            "customer_id": "cust_004",
+            "order_date": "2026-06-01T10:00:00",
+            "status": "fully_returned",
+            "shipping_status": "delivered",
+            "shipping_method": "standard",
+            "shipping_cost": 8,
+            "tracking_number": "TRK74983749",
+            "delivery_date": "2026-07-01T12:00:00",
+            "delivery_promised_date": "2026-06-05T18:00:00",
+            "signature_required": false,
+            "signature_on_file": null,
+            "payment_method": "credit_card",
+            "payment_details": {
+              "credit_card": 43
+            },
+            "subtotal": 35,
+            "discount_code": null,
+            "discount_amount": 0,
+            "total_paid": 43,
+            "is_gift": false,
+            "gift_sender": null,
+            "items": [
+              {
+                "item_id": "ITEM-10242",
+                "order_id": "ORD-7242",
+                "product_id": "PROD-4252",
+                "quantity": 1,
+                "unit_price": 35,
+                "item_status": "returned",
+                "return_reason": "changed_mind",
+                "refund_amount": 35,
+                "refund_method": "original_payment",
+                "restocking_fee": null,
+                "return_label_issued": false,
+                "replacement_item_id": null,
+                "goodwill_credit": 0,
+                "goodwill_credit_method": null,
+                "store_credit_only": false,
+                "product": {
+                  "product_id": "PROD-4252",
+                  "name": "UltraShield Phone Case",
+                  "category": "accessories",
+                  "price": 35,
+                  "current_price": null,
+                  "return_window_days": 30,
+                  "warranty_months": 3,
+                  "in_stock": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "refund"
+          },
+          "result": {
+            "topic": "refund",
+            "rules": {
+              "amount": {
+                "full_refund": "Full refund for defective, wrong item, or damaged in transit.",
+                "promo_redistribution": "If a promo/coupon was used: discount allocated proportionally by item price. Refund = item_price - (discount * item_price / subtotal).",
+                "outside_window": "Outside return window but within store-credit grace: store credit only.",
+                "shipping_refund": "When refunding shipping (defective/wrong/damaged returns, 6+-days-late compensation), refund the actual shipping cost the customer was charged on the order — read order.shipping_cost and refund that amount. Standard policy: $0 on free-shipping orders (subtotal >= $100), $8 otherwise. NOT for buyer's remorse."
+              },
+              "method": {
+                "original_payment": "Default refund method when item was paid for and is being returned for fault.",
+                "store_credit": "Required for: gift returns (at current product price), outside-window grace returns, and exchange-cheaper differences.",
+                "store_credit_only_constraint": "When a return is issued under the store-credit-only rule (gift return OR outside-window grace), the refund method cannot be changed back to original_payment afterward. process_refund will reject any attempt to flip the method on those returns."
+              },
+              "price_match": "If product price drops within 7 days of delivery, refund the difference (no return required).",
+              "goodwill_credit": "Goodwill credits (e.g., fragile-item damage bonus) are issued as a refund with the credit amount."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I understand I can’t get refunded twice for the same item, but is any courtesy credit available on this order?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—your order arrived more than six days late, so it qualifies for separate late-delivery compensation. The $15 courtesy credit plus your $8 shipping charge is capped at $21 under the order’s compensation limit. Would you like me to issue that $21 to your original payment method?",
+      "tool_calls": [
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "shipping"
+          },
+          "result": {
+            "topic": "shipping",
+            "rules": {
+              "not_received": {
+                "under_500": "Delivered but not received (<$500): reship or refund.",
+                "over_500": "Delivered but not received (>=$500): mandatory investigation (3-5 business days).",
+                "signature_on_file": "Delivery with signature on file: claim denied."
+              },
+              "lost_in_transit": {
+                "under_500": "Lost in transit (<$500): immediate reship or refund.",
+                "over_500": "Lost in transit (>=$500): carrier claim required first.",
+                "stuck_7_days": "No tracking update for 7+ days: treat as lost."
+              },
+              "damaged": {
+                "rule": "Damaged in transit: full refund or replacement.",
+                "fragile_bonus": "Fragile items damaged in transit qualify for a separate $10 goodwill credit, issued as a refund in addition to the return refund."
+              },
+              "late_delivery_compensation": {
+                "tiers": {
+                  "1_to_2_days_late": "$5 credit",
+                  "3_to_5_days_late": "$15 credit",
+                  "6_plus_days_late": "Full shipping refund + $15 credit"
+                },
+                "shipping_refund_basis": "When refunding shipping, refund the actual shipping cost the customer was charged on the order — read order.shipping_cost. Standard policy charges $0 on free-shipping orders (subtotal >= $100) and $8 otherwise.",
+                "tier_multipliers": {
+                  "gold": "1.5x multiplier on the base late-delivery credit only (NOT on shipping refund or goodwill). Rounded down (e.g., int(15*1.5) = 22).",
+                  "platinum": "2x multiplier on the base late-delivery credit only. Rounded down."
+                },
+                "repeated_issues": "3+ PRIOR issues in 6 months (not counting current incident): additional $25 goodwill credit.",
+                "loyalty_bonus": "Platinum members with 50+ total orders: one-time $50 loyalty bonus on next compensation claim. Confirm with customer if already redeemed.",
+                "max_cap": "Maximum compensation: 50% of order total (rounded down).",
+                "calculation_order": "1) Compute base credit by days-late tier. 2) Apply tier multiplier to base credit only. 3) Add shipping refund (if 6+ days late) using order.shipping_cost. 4) Add goodwill (if 3+ prior issues or fragile damage). 5) Apply loyalty bonus if eligible. 6) Apply 50%-of-order cap on the sum."
+              }
+            }
+          }
+        },
+        {
+          "name": "get_customer",
+          "arguments": {
+            "customer_id": "cust_004"
+          },
+          "result": {
+            "customer_id": "cust_004",
+            "name": "David Kim",
+            "email": "david.kim@example.com",
+            "membership_tier": "silver",
+            "account_created": "2022-08-10",
+            "total_orders": 31,
+            "preferred_refund_method": "original_payment",
+            "store_credit_balance": 25,
+            "has_prime_shipping": false,
+            "benefits": {
+              "return_window_extension": "+0 days",
+              "compensation_multiplier": "1.0x",
+              "restocking_fee_waiver": false,
+              "prime_shipping": false
+            }
+          }
+        },
+        {
+          "name": "process_refund",
+          "arguments": {
+            "item_id": "ITEM-10242",
+            "refund_method": "original_payment",
+            "amount": 21
+          },
+          "result": {
+            "status": "preview",
+            "item_id": "ITEM-10242",
+            "refund_amount": 21,
+            "refund_method": "original_payment"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "No, please don’t issue anything further. Since this order was already returned and refunded, I’m not looking to pursue any second refund or courtesy credit here.\n\nCan you confirm this will be left as no additional action on ORD-7242?"
+    },
+    {
+      "role": "assistant",
+      "content": "Confirmed—no additional action will be taken on ORD-7242. I haven’t issued any additional refund or courtesy credit, and your existing return and refund will remain unchanged.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "0b58e108ac16469926ee210774e6e3275049d898d35ea23ef40c13ddfbe829d8",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 3,
+    "model_calls": 7
+  },
+  "token_usage": {
+    "input_tokens": 15106,
+    "cached_input_tokens": 15085,
+    "output_tokens": 319,
+    "reasoning_output_tokens": 32,
+    "total_tokens": 15425,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.012910500000000002,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.012910500000000002
+  },
+  "input_tokens": 15106,
+  "cached_input_tokens": 15085,
+  "output_tokens": 319,
+  "reasoning_output_tokens": 32,
+  "total_tokens": 15425,
+  "cost_usd": 0.012910500000000002,
+  "state_diff": {
+    "created": {},
+    "modified": {},
+    "deleted": {}
+  },
+  "state_requirements_gt": [],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 2,
+  "ux_response_density": 4,
+  "ux_base_score": 3.9,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 3,
+  "ux_tool_call_count": 5,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "246c76f59f3cd0e736da35b9beb985088778ff233287454b8bae674285718c72",
+    "judge_ux_quality.md": "8b6ecae22872ab860d4a54f37e5bd4a6a160033b833cd1b0de6a3673640d7067",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

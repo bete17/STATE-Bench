@@ -1,0 +1,513 @@
+{
+  "task_id": "102-change_business_domestic_fare_diff_only",
+  "user_id": "user_001",
+  "task_summary": "Traveler needs to move a domestic business booking for a personal reason. Correct resolution: the change fee is $0 and the requested replacement changes the total by $150 more.\n\nChallenge: The agent must compare two real same-day business options, separate zero change fee from fare difference for each, and avoid mutating the booking before explicit approval.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "change_business_domestic_fare_diff_only_fee_quote",
+      "kind": "must",
+      "requirement": "Agent must explain that the correct change fee for this request is $0.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. The agent explicitly stated the change fee is $0 in the initial comparison table and again in later confirmations/policy explanations."
+    },
+    {
+      "id": "change_business_domestic_fare_diff_only_delta_quote",
+      "kind": "must",
+      "requirement": "Agent must explain that moving to the requested flight changes the booking total by $150 more, based on the replacement fare and the applicable change fee.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. The agent explained that moving to AA108 would cost $150 more total, with $0 change fee and $150 fare difference, and later confirmed the updated total would be $910."
+    },
+    {
+      "id": "change_business_domestic_fare_diff_only_must_not_invent_fee",
+      "kind": "must_not",
+      "requirement": "Agent must not invent a non-zero change fee once the qualifying exemption is established.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. Once the free-change business policy was established, the agent never quoted any non-zero change fee."
+    },
+    {
+      "id": "change_business_domestic_fare_diff_only_compare_two_options_before_action",
+      "kind": "must",
+      "requirement": "Agent must compare at least two concrete June 24 business-flight options and give the user the total extra amount for each before executing any booking change.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. Before any confirmed update, the agent compared two concrete June 24 business options (AA108 and AA109) and gave the exact extra amount for each: $150 and $200. The earlier update_booking calls were previews only (confirm=false, status='preview')."
+    },
+    {
+      "id": "change_business_domestic_fare_diff_only_choose_cheaper_option",
+      "kind": "must",
+      "requirement": "Agent must identify the cheaper June 24 business option before asking for approval or executing the change.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. The agent identified AA108 as the cheaper June 24 business option ('AA108 costs $50 less' / 'AA108 is the cheaper option') before asking for approval/finalization."
+    },
+    {
+      "id": "change_business_domestic_fare_diff_only_no_premature_write",
+      "kind": "must_not",
+      "requirement": "Agent must not update the booking before the user approves a specific compared option.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. The agent did not mutate the booking during comparison; only preview calls were used first. The actual update occurred later with confirm=true after the user specified AA108 and authorized proceeding if the $0 fee still applied."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 4,
+  "ux_score": 3.35,
+  "ux_reasoning": "The agent handled the initial request well by keeping the comparison phase read-only, using preview updates only, and clearly separating the $0 change fee from the fare difference for both same-day business options. It also waited to execute until the user gave conditional authorization to proceed with AA108 if the Gold-tier policy check still supported a $0 change fee. However, it unnecessarily fetched the user's Gold details and then queried policy as if the traveler were basic, giving a confident explanation that forced the user to correct the tier and ask again before approving. Responses were otherwise compact and decision-ready, with clear arithmetic, preserved-preference summaries, and a solid final-state confirmation.",
+  "turns": 4,
+  "tool_calls": 11,
+  "tool_errors": 0,
+  "redundant_calls": 1,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I need to move my business booking BK-1000 to June 24, but I do not want you to change anything until you compare at least two same-day business options and show me the exact extra amount for each."
+    },
+    {
+      "role": "assistant",
+      "content": "**Your booking BK-1000 is unchanged.** I previewed these two nonstop business-class options from JFK to Miami on **June 24, 2026**:\n\n| Flight | Departure–arrival* | Change fee | Fare difference | Exact extra amount |\n|---|---|---:|---:|---:|\n| American AA108 | 4:15–8:02 p.m. | $0 | $150 | **$150** |\n| American AA109 | 7:30–10:24 p.m. | $0 | $200 | **$200** |\n\n*All times local.*\n\nBoth previews retain your aisle seat preference, kosher meal, Wi-Fi, extra legroom, and no travel insurance.\n\nAA108 costs **$50 less**. Which option would you like me to proceed with?",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "AA100",
+            "status": "confirmed",
+            "cabin_class": "business",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 760,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-03T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "MIA",
+            "departure_time": "2026-06-20T09:00:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "MIA",
+            "date": "2026-06-24",
+            "airline": "",
+            "time_range": "morning",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "MIA",
+            "date": "2026-06-24",
+            "airline": "",
+            "time_range": "afternoon",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "AA108",
+                "airline_code": "AA",
+                "origin": "JFK",
+                "destination": "MIA",
+                "departure_time": "2026-06-24T16:15:00",
+                "arrival_time": "2026-06-24T20:02:00",
+                "duration_minutes": 227,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 320,
+                  "business": 910
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "MIA",
+            "date": "2026-06-24",
+            "airline": "",
+            "time_range": "evening",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "AA109",
+                "airline_code": "AA",
+                "origin": "JFK",
+                "destination": "MIA",
+                "departure_time": "2026-06-24T19:30:00",
+                "arrival_time": "2026-06-24T22:24:00",
+                "duration_minutes": 174,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 340,
+                  "business": 960
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "AA108",
+            "change_reason": "personal",
+            "cabin_class": "business",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "AA108",
+            "change_fee": 0,
+            "fare_difference": 150,
+            "price_paid": 910
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "AA109",
+            "change_reason": "personal",
+            "cabin_class": "business",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "AA109",
+            "change_fee": 0,
+            "fare_difference": 200,
+            "price_paid": 960
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks. Before I approve, can you confirm why the change fee is $0, and also confirm the search details for each option: airline, time range, and max stops? If everything checks out, I’d choose the cheaper option, AA108, since the total extra is $150 and that fits my budget."
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—everything checks out:\n\n- **Why the change fee is $0:** Business-class policy allows free changes; any fare difference still applies. This is a cabin benefit, not a special waiver.\n- **Search details:** Neither search restricted the airline. Both returned American Airlines flights and allowed **0 stops (nonstop only)**.\n\n| Option | Airline returned | Time-range filter | Max stops | Exact extra |\n|---|---|---|---:|---:|\n| AA108 | American Airlines (AA) | Afternoon, noon–5 p.m. | 0 | **$150** |\n| AA109 | American Airlines (AA) | Evening, 5–9 p.m. | 0 | **$200** |\n\nBoth searches were for **JFK → MIA on June 24, 2026**, with no price cap. The business-class change previews confirmed a **$0 change fee** for each.\n\n**AA108 is the cheaper option: $150 additional, bringing the booking total to $910**, with your existing preferences preserved.\n\nYour booking is still unchanged. Shall I finalize AA108 for the additional $150?",
+      "tool_calls": [
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_001"
+          },
+          "result": {
+            "user_id": "user_001",
+            "name": "Emma Smith",
+            "email": "emma.smith@example.com",
+            "loyalty_tier": "gold",
+            "loyalty_points": 75000
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "business",
+            "loyalty_tier": "basic",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "business",
+            "applicable_route_type": "domestic"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I’m not approving the change yet. Please confirm the policy using my actual details—I’m **Gold**, not basic—and then, if the $0 change fee still applies, you can proceed with **AA108** for the **$150 fare difference / $150 total extra**, keeping the existing booking preferences."
+    },
+    {
+      "role": "assistant",
+      "content": "Confirmed using your **Gold tier, business cabin, and domestic route**: the policy allows changes with **no change fee**, though the fare difference applies.\n\nYour conditional approval has been applied, and **BK-1000 is now changed to AA108**:\n- **June 24, 2026:** JFK → Miami, nonstop\n- **Departure:** 4:15 p.m.; **arrival:** 8:02 p.m. (local times)\n- **Cabin:** Business\n- **Change fee:** $0\n- **Fare difference / total extra:** **$150**\n- **Updated booking total:** $910\n\nPreserved: aisle seat preference, kosher meal, Wi-Fi, extra legroom, no travel insurance, and no extra paid checked bags.",
+      "tool_calls": [
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "business",
+            "loyalty_tier": "gold",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "business",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "AA108",
+            "change_reason": "personal",
+            "cabin_class": "business",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": true
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-1000",
+            "changes_applied": [
+              "flight_id",
+              "change_reason"
+            ],
+            "price_paid": 910,
+            "change_fee": 0,
+            "fare_difference": 150
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Please confirm one more detail: was **travel insurance preserved as “no”** on the changed booking? I want to make sure the final booking has the June 24 **business** flight, **$0 change fee**, **$150 fare difference / $150 total extra**, and the existing preferences fully preserved before I’m done."
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—I checked the final saved booking **BK-1000**, and **travel insurance is preserved as “no”** (`add_insurance: false`).\n\nConfirmed:\n- **Flight:** AA108, JFK → Miami, June 24, 2026, departing 4:15 p.m.\n- **Cabin:** Business\n- **Change fee:** $0\n- **Fare difference / total extra:** **$150**\n- **Updated booking total:** $910\n\nAll existing preferences remain preserved: **aisle seat, kosher meal, Wi-Fi enabled, extra legroom enabled, no travel insurance, and zero extra paid checked bags**. Your booking is confirmed.",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "AA108",
+            "status": "confirmed",
+            "cabin_class": "business",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 910,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-03T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": 0,
+            "fare_difference": 150,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "MIA",
+            "departure_time": "2026-06-24T16:15:00",
+            "route_type": "domestic"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "StateBenchAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "token_usage": {
+    "input_tokens": 49936,
+    "cached_input_tokens": 46551,
+    "output_tokens": 1515,
+    "reasoning_output_tokens": 86,
+    "total_tokens": 51451,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0
+  },
+  "input_tokens": 49936,
+  "cached_input_tokens": 46551,
+  "output_tokens": 1515,
+  "reasoning_output_tokens": 86,
+  "total_tokens": 51451,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "fare_difference": {
+            "old": null,
+            "new": 150
+          },
+          "change_fee": {
+            "old": null,
+            "new": 0
+          },
+          "price_paid": {
+            "old": 760,
+            "new": 910
+          },
+          "flight_id": {
+            "old": "AA100",
+            "new": "AA108"
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "change_fee",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "fare_difference",
+      "expected_value": 150
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "flight_id",
+      "expected_value": "AA108"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "price_paid",
+      "expected_value": 910
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 2,
+  "ux_response_density": 4,
+  "ux_base_score": 3.4,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.05,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 4,
+  "ux_tool_call_count": 11,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 1,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

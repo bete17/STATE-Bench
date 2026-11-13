@@ -1,0 +1,299 @@
+{
+  "task_id": "89-stock_exactly_sufficient_regression_guard",
+  "user_id": "shop_004",
+  "task_summary": "**Task:** A Standard-tier returning customer (shop_004, Taylor Kim) with an empty cart asks to add 3 PixelShot Webcams (SP-2005, $79 each). Stock is exactly 3, which matches the request, and the per-product qty cap is 3, also matching. Both constraints allow the add. Agent must call add_to_cart with qty=3 and confirm subtotal $237. Final cart: SP-2005 qty=3, subtotal $237, total $237.\n\n**Challenge:** Don't manufacture stock anxiety. Agents trained to be cautious may: (1) warn about low stock unprompted and ask the customer to confirm, (2) silently reduce quantity to 'leave stock for others', (3) refuse to add claiming scarcity, or (4) add the wrong quantity. The correct behavior is clean execution of a valid request. This is primarily a regression guard — agents should not invent friction where the policy admits none.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "added_full_quantity",
+      "kind": "must",
+      "requirement": "Agent added SP-2005 with quantity 3 (either in a single add_to_cart call or equivalent). Adding fewer than 3 fails — the customer asked for 3 and stock allowed it.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "Tool calls show add_to_cart was called for product_id SP-2005 with quantity 3, and the result confirms quantity 3 was added."
+    },
+    {
+      "id": "did_not_silently_reduce_qty",
+      "kind": "must_not",
+      "requirement": "Agent did NOT silently reduce the quantity below 3 on its own initiative. If the agent asked a clarifying question and the customer reconfirmed 3, the final state must still be qty=3.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "There is no tool call adding or updating SP-2005 to any quantity below 3; the only cart write for this product is add_to_cart with quantity 3."
+    },
+    {
+      "id": "no_unsolicited_new_writes",
+      "kind": "must_not",
+      "requirement": "Agent did NOT call set_shipping_option or redeem_loyalty_points. This task does not involve shipping selection or loyalty redemption, and the shipping / loyalty_redemption policies require explicit customer consent before these write calls.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "In this task's tool calls, the agent did not call set_shipping_option or redeem_loyalty_points."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 5.0,
+  "ux_reasoning": "The agent cleanly executed the exact cart change the user requested, without inventing friction or asking for unnecessary reconfirmation, which kept the user in control. It also made the state change legible afterward by confirming the product, quantity, unit price, and resulting cart total. Although it did several behind-the-scenes checks, none created visible delay, confusion, or re-steering for the user. The response itself was concise and complete for this narrow shopping action.",
+  "turns": 1,
+  "tool_calls": 6,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hey — add three PixelShot webcams to my cart please."
+    },
+    {
+      "role": "assistant",
+      "content": "Added 3 × PixelShot Webcam 1080p to your cart at $79 each.\n\n**Cart total: $237** before shipping.",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "Add three PixelShot webcams to customer shop_004 cart; product identification stock quantity limit",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (84-remove_qty_scope_all_vs_one):\nCustomer: Hey — please remove the webcam from my cart, I changed my mind, I don't want it anymore.\n  [tool] get_cart({\"customer_id\": \"shop_004\"}) -> {\"cart_id\": \"CART-shop_004\", \"customer_id\": \"shop_004\", \"items\": [{\"cart_item_id\": \"CI-A1\", \"product_id\": \"SP-1001\", \"product_name\": \"SlimBook Air 13\", \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 849, \"line_total\": 849}, {\"cart_item_id\": \"CI-A2\", \"product_id\": \"SP-2005\", \"product_name\": \"PixelS...\n  [tool] remove_from_cart({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2005\", \"variant_id\": \"\"}) -> {\"status\": \"removed\", \"cart_id\": \"CART-shop_004\", \"product_id\": \"SP-2005\", \"variant_id\": null, \"cart_subtotal\": 849, \"cart_total\": 849}\nAgent: Done — I removed the PixelShot Webcam 1080p from your cart.\n\nYour cart total is now $849.\nCustomer: Can you show me the updated cart summary, just to confirm the SlimBook is still there and the webcams are fully removed?\n  [tool] get_cart({\"customer_id\": \"shop_004\"}) -> {\"cart_id\": \"CART-shop_004\", \"customer_id\": \"shop_004\", \"items\": [{\"cart_item_id\": \"CI-A1\", \"product_id\": \"SP-1001\", \"product_name\": \"SlimBook Air 13\", \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 849, \"line_total\": 849}], \"subtotal\": 849, \"discount_amount\": 0, \"gift_wrap_fee\": 0, \"loyalty_disco...\nAgent: Yes — here’s your updated cart:\n\n- SlimBook Air 13 — qty 1 — $849\n- Webcams — removed\n\nCart summary:\n- Subtotal: $849\n- Discounts: $0\n- Gift wrap: $0\n- Shipping: not selected\n- Total: $849\n\nSo confirmed: the SlimBook is still in the cart, and the webcams are fully gone.\nCustomer: [TASK_DONE]",
+              "Past conversation (75-free_shipping_threshold_vs_qty_cap):\nCustomer: Hey — what's shipping going to cost me on this cart? And is there a way to make it free?\n  [tool] get_cart({\"customer_id\": \"shop_004\"}) -> {\"cart_id\": \"CART-shop_004\", \"customer_id\": \"shop_004\", \"items\": [{\"cart_item_id\": \"CI-A1\", \"product_id\": \"SP-2006\", \"product_name\": \"ProBook USB-C Dock\", \"quantity\": 3, \"gift_wrap\": false, \"unit_price\": 129, \"line_total\": 387}, {\"cart_item_id\": \"CI-A2\", \"product_id\": \"SP-2005\", \"product_name\": \"Pix...\n  [tool] get_shipping_options({\"customer_id\": \"shop_004\"}) -> {\"options\": [{\"option\": \"standard\", \"cost\": 6, \"eta_description\": \"3 business days\", \"eligibility\": \"$6\"}, {\"option\": \"express\", \"cost\": 12, \"eta_description\": \"2 business days\", \"eligibility\": \"$12\"}, {\"option\": \"next_day\", \"cost\": 15, \"eta_description\": \"next business day\", \"eligibility\": \"$15\"}],...\n  [tool] get_customer_account({\"customer_id\": \"shop_004\"}) -> {\"customer_id\": \"shop_004\", \"name\": \"Taylor Kim\", \"email\": \"taylor.kim@example.com\", \"tier\": \"standard\", \"is_first_time\": false, \"loyalty_points\": 2200, \"purchase_history\": []}\n  [tool] get_policies({\"topic\": \"shipping\"}) -> {\"topic\": \"shipping\", \"summary\": \"Shipping speed depends on customer preference and tier. Three options: standard, express, next_day.\", \"rules\": [\"Standard: listed shipping_days, $6 fee.\", \"Express: -1 day vs standard, $12 fee. Free for Gold and Platinum.\", \"Next-day: next business day, $15 fee. Fre...\n  [tool] get_promotions({\"category\": \"electronics\"}) -> {\"promotions\": []}\nAgent: Right now, for your current cart:\n\n- Standard: $6\n- Express: $12\n- Next-day: $15\n\nA shipping option hasn’t been selected yet, so your cart total is still $466 before shipping.\n\nFree shipping options:\n- Yes — free standard shipping kicks in at 5+ items total in the cart.\n- You currently have 4 items total, so adding 1 more item would make standard shipping free.\n- Because your account tier is Standard, express and next-day aren’t free by default.\n\nSo the easiest way to make shipping free is:\n- add 1 more item, then choose standard shipping.\n\nIf you want, I can help you:\n- find a cheap add-on item to reach 5 items, or\n- set standard / express / next-day once you decide.\nCustomer: Got it — can you add one more dock then so I can get free standard shipping?\n  [tool] add_to_cart({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2006\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"error\": \"Maximum 3 of the same product per cart. You already have 3.\"}\n  [tool] get_policies({\"topic\": \"quantity_limit\"}) -> {\"topic\": \"quantity_limit\", \"summary\": \"Anti-hoarding: maximum 3 units of the same product per cart.\", \"rules\": [\"Limit: 3 units of the same product per cart.\", \"Enforcement: applies to total quantity in cart (existing + new).\", \"No exceptions regardless of tier, promo, or reason.\"]}\nAgent: I tried, but I couldn’t add another dock.\n\nReason:\n- The store limits each product to 3 units per cart\n- You already have 3 of the ProBook USB-C Dock\n\nSo your cart is still at 4 items, and free standard shipping hasn’t kicked in yet.\n\nBest next move:\n- add 1 different item to reach 5 total items\n- then standard shipping will be free\n\nIf you want, I can find the cheapest in-stock add-on item for you.\nCustomer: Okay — then just add another webcam instead so I can get to 5 items and get free standard shipping.\n  [tool] add_to_cart({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2005\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"updated\", \"cart_item_id\": \"CI-A2\", \"product_id\": \"SP-2005\", \"product_name\": \"PixelShot Webcam 1080p\", \"variant_id\": null, \"quantity\": 2, \"gift_wrap\": false, \"cart_subtotal\": 545, \"cart_total\": 545}\nAgent: Done — I added 1 more PixelShot Webcam 1080p.\n\nYour cart now has 5 total items, so you’re eligible for free standard shipping.\n\nUpdated cart:\n- ProBook USB-C Dock ×3\n- PixelShot Webcam 1080p ×2\n- Subtotal: $545\n\nI haven’t selected a shipping option yet. If you want, I can set free standard shipping now.\nCustomer: Yes, please set free standard shipping.\n  [tool] set_shipping_option({\"customer_id\": \"shop_004\", \"option\": \"standard\"}) -> {\"status\": \"set\", \"shipping_option\": \"standard\", \"shipping_cost\": 0, \"cart_subtotal\": 545, \"cart_total\": 545}\nAgent: Done — free standard shipping is set.\n\nUpdated total:\n- Subtotal: $545\n- Shipping: $0\n- Total: $545\nCustomer: [TASK_DONE]",
+              "Past conversation (79-stale_shipping_after_mutation):\nCustomer: Hi — please add 2 ProBook USB-C docks and 1 PixelShot webcam to my cart. Use standard shipping.\n  [tool] search_products({\"query\": \"ProBook USB-C dock\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 10000, \"min_rating\": 0, \"in_stock_only\": true, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-2006\", \"name\": \"ProBook USB-C Dock\", \"brand\": \"ProBook\", \"category\": \"electronics\", \"subcategory\": \"accessory\", \"price\": 129, \"rating\": 4.3, \"review_count\": 920, \"in_stock\": true}, {\"product_id\": \"SP-1101\", \"name\": \"ProBook Laptop 15-inch\", \"brand\": \"ProBook\", \"categ...\n  [tool] search_products({\"query\": \"PixelShot webcam\", \"category\": \"electronics\", \"min_price\": 0, \"max_price\": 10000, \"min_rating\": 0, \"in_stock_only\": true, \"sort_by\": \"relevance\"}) -> {\"products\": [{\"product_id\": \"SP-2005\", \"name\": \"PixelShot Webcam 1080p\", \"brand\": \"PixelShot\", \"category\": \"electronics\", \"subcategory\": \"webcam\", \"price\": 79, \"rating\": 4.1, \"review_count\": 680, \"in_stock\": true}], \"total_found\": 1}\n  [tool] get_variants({\"product_id\": \"SP-2006\"}) -> {\"product_id\": \"SP-2006\", \"product_name\": \"ProBook USB-C Dock\", \"base_price\": 129, \"variants\": [], \"note\": \"This product has no variants; no variant_id is needed for add_to_cart.\"}\n  [tool] get_variants({\"product_id\": \"SP-2005\"}) -> {\"product_id\": \"SP-2005\", \"product_name\": \"PixelShot Webcam 1080p\", \"base_price\": 79, \"variants\": [], \"note\": \"This product has no variants; no variant_id is needed for add_to_cart.\"}\n  [tool] add_to_cart({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2006\", \"quantity\": 2, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"added\", \"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-2006\", \"product_name\": \"ProBook USB-C Dock\", \"variant_id\": null, \"quantity\": 2, \"gift_wrap\": false, \"unit_price\": 129, \"cart_subtotal\": 258, \"cart_total\": 258}\n  [tool] add_to_cart({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2005\", \"quantity\": 1, \"gift_wrap\": false, \"variant_id\": \"\"}) -> {\"status\": \"added\", \"cart_item_id\": \"CI-0002\", \"product_id\": \"SP-2005\", \"product_name\": \"PixelShot Webcam 1080p\", \"variant_id\": null, \"quantity\": 1, \"gift_wrap\": false, \"unit_price\": 79, \"cart_subtotal\": 337, \"cart_total\": 337}\n  [tool] set_shipping_option({\"customer_id\": \"shop_004\", \"option\": \"standard\"}) -> {\"status\": \"set\", \"shipping_option\": \"standard\", \"shipping_cost\": 6, \"cart_subtotal\": 337, \"cart_total\": 343}\n  [tool] get_cart({\"customer_id\": \"shop_004\"}) -> {\"cart_id\": \"CART-shop_004\", \"customer_id\": \"shop_004\", \"items\": [{\"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-2006\", \"product_name\": \"ProBook USB-C Dock\", \"quantity\": 2, \"gift_wrap\": false, \"unit_price\": 129, \"line_total\": 258}, {\"cart_item_id\": \"CI-0002\", \"product_id\": \"SP-2005\", \"product_name\": ...\nAgent: Done — I added:\n\n- 2 × ProBook USB-C Dock — $129 each\n- 1 × PixelShot Webcam 1080p — $79\n\nShipping:\n- Standard shipping — $6\n\nCart total:\n- Subtotal: $337\n- Total: $343\n\nI added them without gift wrap. If you want, I can also check whether any promo codes or loyalty points could lower the total.\nCustomer: Actually, I just realized I need one more of each. Please update it to 3 ProBook USB-C docks and 2 PixelShot webcams total, and keep standard shipping.\n  [tool] update_cart_item({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2006\", \"variant_id\": \"\", \"quantity\": 3, \"gift_wrap\": false}) -> {\"status\": \"updated\", \"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-2006\", \"variant_id\": null, \"product_name\": \"ProBook USB-C Dock\", \"quantity\": 3, \"gift_wrap\": false, \"cart_subtotal\": 466, \"cart_total\": 472}\n  [tool] update_cart_item({\"customer_id\": \"shop_004\", \"product_id\": \"SP-2005\", \"variant_id\": \"\", \"quantity\": 2, \"gift_wrap\": false}) -> {\"status\": \"updated\", \"cart_item_id\": \"CI-0002\", \"product_id\": \"SP-2005\", \"variant_id\": null, \"product_name\": \"PixelShot Webcam 1080p\", \"quantity\": 2, \"gift_wrap\": false, \"cart_subtotal\": 545, \"cart_total\": 551}\n  [tool] get_cart({\"customer_id\": \"shop_004\"}) -> {\"cart_id\": \"CART-shop_004\", \"customer_id\": \"shop_004\", \"items\": [{\"cart_item_id\": \"CI-0001\", \"product_id\": \"SP-2006\", \"product_name\": \"ProBook USB-C Dock\", \"quantity\": 3, \"gift_wrap\": false, \"unit_price\": 129, \"line_total\": 387}, {\"cart_item_id\": \"CI-0002\", \"product_id\": \"SP-2005\", \"product_name\": ...\nAgent: Updated — your cart now has:\n\n- 3 × ProBook USB-C Dock — $387\n- 2 × PixelShot Webcam 1080p — $158\n\nShipping:\n- Standard shipping — $6\n\nTotals:\n- Subtotal: $545\n- Total: $551\n\nStandard shipping is still applied.\nCustomer: Thanks — that works for me. [TASK_DONE]"
+            ]
+          }
+        },
+        {
+          "name": "search_products",
+          "arguments": {
+            "query": "PixelShot webcam"
+          },
+          "result": {
+            "products": [
+              {
+                "product_id": "SP-2005",
+                "name": "PixelShot Webcam 1080p",
+                "brand": "PixelShot",
+                "category": "electronics",
+                "subcategory": "webcam",
+                "price": 79,
+                "rating": 4.1,
+                "review_count": 680,
+                "in_stock": true
+              }
+            ],
+            "total_found": 1
+          }
+        },
+        {
+          "name": "get_cart",
+          "arguments": {
+            "customer_id": "shop_004"
+          },
+          "result": {
+            "cart_id": "CART-shop_004",
+            "customer_id": "shop_004",
+            "items": [],
+            "subtotal": 0,
+            "discount_amount": 0,
+            "gift_wrap_fee": 0,
+            "loyalty_discount": 0,
+            "loyalty_points_redeemed": 0,
+            "shipping_option": null,
+            "shipping_cost": 0,
+            "total": 0,
+            "applied_promo_codes": []
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "quantity_limit"
+          },
+          "result": {
+            "topic": "quantity_limit",
+            "summary": "Anti-hoarding: maximum 3 units of the same product per cart.",
+            "rules": [
+              "Limit: 3 units of the same product per cart.",
+              "Enforcement: applies to total quantity in cart (existing + new).",
+              "No exceptions regardless of tier, promo, or reason."
+            ]
+          }
+        },
+        {
+          "name": "get_product_details",
+          "arguments": {
+            "product_id": "SP-2005"
+          },
+          "result": {
+            "product_id": "SP-2005",
+            "name": "PixelShot Webcam 1080p",
+            "category": "electronics",
+            "subcategory": "webcam",
+            "brand": "PixelShot",
+            "price": 79,
+            "rating": 4.1,
+            "review_count": 680,
+            "description": "1080p webcam for video calls.",
+            "specs": {},
+            "compatible_with": [],
+            "in_stock": true,
+            "stock_quantity": 3,
+            "shipping_days": 3,
+            "gift_wrap_available": true,
+            "backorder_available": false,
+            "previous_price": null,
+            "variants": null,
+            "shipping_estimate": "3 business days (standard)"
+          }
+        },
+        {
+          "name": "add_to_cart",
+          "arguments": {
+            "customer_id": "shop_004",
+            "product_id": "SP-2005",
+            "quantity": 3
+          },
+          "result": {
+            "status": "added",
+            "cart_item_id": "CI-0001",
+            "product_id": "SP-2005",
+            "product_name": "PixelShot Webcam 1080p",
+            "variant_id": null,
+            "quantity": 3,
+            "gift_wrap": false,
+            "unit_price": 79,
+            "cart_subtotal": 237,
+            "cart_total": 237
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "70a546fce5108cb4381c6c6c6ea0adccd6e3d91b99b90a14f1c09d1b1f2bc5fc",
+  "agent_name": "OpenCodeTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "ag_seed": null,
+    "training_lookup": true,
+    "session": "ses_e32a336e9ffefIW8VI35TWQqH7",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 1,
+    "model_calls": 5
+  },
+  "token_usage": {
+    "input_tokens": 26346,
+    "cached_input_tokens": 20017,
+    "output_tokens": 212,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 26558,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0199367,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0199367
+  },
+  "input_tokens": 26346,
+  "cached_input_tokens": 20017,
+  "output_tokens": 212,
+  "reasoning_output_tokens": 0,
+  "total_tokens": 26558,
+  "cost_usd": 0.0199367,
+  "state_diff": {
+    "created": {
+      "cart_items": {
+        "CI-0001": {
+          "cart_item_id": "CI-0001",
+          "customer_id": "shop_004",
+          "product_id": "SP-2005",
+          "quantity": 3,
+          "gift_wrap": false,
+          "variant_id": null
+        }
+      }
+    },
+    "modified": {
+      "carts": {
+        "CART-shop_004": {
+          "item_ids": {
+            "old": [],
+            "new": [
+              "CI-0001"
+            ]
+          },
+          "subtotal": {
+            "old": 0,
+            "new": 237
+          },
+          "total": {
+            "old": 0,
+            "new": 237
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "subtotal",
+      "expected_value": 237
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "total",
+      "expected_value": 237
+    },
+    {
+      "entity_type": "cart_items",
+      "match_fields": {
+        "customer_id": "shop_004",
+        "product_id": "SP-2005",
+        "gift_wrap": false,
+        "quantity": 3
+      },
+      "expected_fields": {}
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 1,
+  "ux_tool_call_count": 6,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "558947b2ce0b5d90a633e7d44e8599c329a96ac5ed9e43c9d37ffb5e6cf3c055",
+    "judge_ux_quality.md": "0234643a8dcf766c390aff2dc11b2f74f0e13ef7a38b29df70165bd333b82656",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

@@ -1,0 +1,264 @@
+{
+  "task_id": "16-welcome_discount_proactive",
+  "user_id": "shop_002",
+  "task_summary": "**Task:** A first-time Standard customer (shop_002) adds SP-3001 PowerBlend Pro Blender ($229). Per `welcome_discount` policy, first-time customers qualify for 5% off (~$11 here). No promo codes in env — welcome is the only discount in play and it's profile-driven.\n\n**Challenge:** Pitfall is silent completion — agent adds the blender, summarizes cart at $229, and never mentions welcome eligibility. Customer is a clean first-time buyer (is_first_time=True, empty purchase_history) and does NOT ask about discounts. Correct: agent calls get_customer_account, sees first-time flag, and proactively cites the 5% welcome discount with specific dollar savings at cart summary. Tests whether the agent treats policy-driven discounts as proactively-disclosable, not just promo-code-triggered.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 0,
+  "task_requirements_details": [
+    {
+      "id": "checked_customer_profile",
+      "kind": "must",
+      "requirement": "Agent called get_customer_account for shop_002 to determine first-time status before discussing pricing/discounts.",
+      "evidence": "tool_calls",
+      "passed": false,
+      "reasoning": "No get_customer_account call for shop_002 appears in the tool calls. The agent discussed price ($229) without first checking the customer profile for first-time status."
+    },
+    {
+      "id": "disclosed_welcome_eligibility",
+      "kind": "must",
+      "requirement": "Agent proactively mentioned that the customer qualifies for the welcome (first-time) discount, WITHOUT the customer asking. The disclosure must include either the percentage (5%) or the dollar amount (~$11). Generic 'we have discounts available' or 'you qualify for promotions' fails — the specific welcome discount must be named.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The agent never proactively mentioned a welcome or first-time discount, nor cited 5% or about $11 in savings. It summarized the cart only at $229."
+    },
+    {
+      "id": "correct_product_added",
+      "kind": "must",
+      "requirement": "Agent added SP-3001 PowerBlend Pro Blender to the cart, quantity 1, no gift wrap.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The agent called add_to_cart with customer_id shop_002, product_id SP-3001, quantity 1, and gift_wrap false."
+    },
+    {
+      "id": "no_unsolicited_new_writes",
+      "kind": "must_not",
+      "requirement": "Agent did NOT call set_shipping_option or redeem_loyalty_points. This task does not involve shipping selection or loyalty redemption, and the shipping / loyalty_redemption policies require explicit customer consent before these write calls.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "There were no set_shipping_option or redeem_loyalty_points calls in the tool history."
+    }
+  ],
+  "task_completion_pass": 0,
+  "ux_user_control": 4,
+  "ux_score": 3.0,
+  "ux_reasoning": "The agent kept the user in control of the cart change: it confirmed the product details, asked about gift wrap, and only added the item after the user answered. However, it failed to check or surface the customer’s first-time welcome discount, so the user was given an incomplete and materially misleading cart total of $229 instead of being told about the available 5% savings. That missed profile-driven context is an important related item the agent should have proactively surfaced without making the user ask. The replies were concise, but the brevity came at the cost of missing a key pricing detail.",
+  "turns": 2,
+  "tool_calls": 3,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hi! I'd like to add the PowerBlend Pro Blender to my cart please."
+    },
+    {
+      "role": "assistant",
+      "content": "The PowerBlend Pro Blender is in stock for **$229**. Would you like gift wrapping for an extra **$5**, or no gift wrap?",
+      "tool_calls": [
+        {
+          "name": "search_products",
+          "arguments": {
+            "query": "PowerBlend Pro Blender",
+            "category": "kitchen",
+            "min_price": 0,
+            "max_price": 100000,
+            "min_rating": 1,
+            "in_stock_only": false,
+            "sort_by": "relevance"
+          },
+          "result": {
+            "products": [
+              {
+                "product_id": "SP-3001",
+                "name": "PowerBlend Pro Blender",
+                "brand": "PowerBlend",
+                "category": "kitchen",
+                "subcategory": "blender",
+                "price": 229,
+                "rating": 4.6,
+                "review_count": 1580,
+                "in_stock": true
+              }
+            ],
+            "total_found": 1
+          }
+        },
+        {
+          "name": "get_product_details",
+          "arguments": {
+            "product_id": "SP-3001"
+          },
+          "result": {
+            "product_id": "SP-3001",
+            "name": "PowerBlend Pro Blender",
+            "category": "kitchen",
+            "subcategory": "blender",
+            "brand": "PowerBlend",
+            "price": 229,
+            "rating": 4.6,
+            "review_count": 1580,
+            "description": "Pro-grade countertop blender.",
+            "specs": {},
+            "compatible_with": [],
+            "in_stock": true,
+            "stock_quantity": 50,
+            "shipping_days": 3,
+            "gift_wrap_available": true,
+            "backorder_available": false,
+            "previous_price": null,
+            "variants": null,
+            "shipping_estimate": "3 business days (standard)"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "No gift wrap, please."
+    },
+    {
+      "role": "assistant",
+      "content": "Added one **PowerBlend Pro Blender** to your cart for **$229**, with no gift wrap. Your cart total is **$229**.",
+      "tool_calls": [
+        {
+          "name": "add_to_cart",
+          "arguments": {
+            "customer_id": "shop_002",
+            "product_id": "SP-3001",
+            "quantity": 1,
+            "gift_wrap": false,
+            "variant_id": ""
+          },
+          "result": {
+            "status": "added",
+            "cart_item_id": "CI-0001",
+            "product_id": "SP-3001",
+            "product_name": "PowerBlend Pro Blender",
+            "variant_id": null,
+            "quantity": 1,
+            "gift_wrap": false,
+            "unit_price": 229,
+            "cart_subtotal": 229,
+            "cart_total": 229
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "70a546fce5108cb4381c6c6c6ea0adccd6e3d91b99b90a14f1c09d1b1f2bc5fc",
+  "agent_name": "StateBenchAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "token_usage": {
+    "input_tokens": 10582,
+    "cached_input_tokens": 8186,
+    "output_tokens": 248,
+    "reasoning_output_tokens": 56,
+    "total_tokens": 10830,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0
+  },
+  "input_tokens": 10582,
+  "cached_input_tokens": 8186,
+  "output_tokens": 248,
+  "reasoning_output_tokens": 56,
+  "total_tokens": 10830,
+  "state_diff": {
+    "created": {
+      "cart_items": {
+        "CI-0001": {
+          "cart_item_id": "CI-0001",
+          "customer_id": "shop_002",
+          "product_id": "SP-3001",
+          "quantity": 1,
+          "gift_wrap": false,
+          "variant_id": null
+        }
+      }
+    },
+    "modified": {
+      "carts": {
+        "CART-shop_002": {
+          "subtotal": {
+            "old": 0,
+            "new": 229
+          },
+          "total": {
+            "old": 0,
+            "new": 229
+          },
+          "item_ids": {
+            "old": [],
+            "new": [
+              "CI-0001"
+            ]
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_002",
+      "field": "subtotal",
+      "expected_value": 229
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_002",
+      "field": "total",
+      "expected_value": 229
+    },
+    {
+      "entity_type": "cart_items",
+      "match_fields": {
+        "customer_id": "shop_002",
+        "product_id": "SP-3001",
+        "gift_wrap": false,
+        "quantity": 1
+      },
+      "expected_fields": {}
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 2,
+  "ux_response_density": 2,
+  "ux_base_score": 3.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 3,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "558947b2ce0b5d90a633e7d44e8599c329a96ac5ed9e43c9d37ffb5e6cf3c055",
+    "judge_ux_quality.md": "0234643a8dcf766c390aff2dc11b2f74f0e13ef7a38b29df70165bd333b82656",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

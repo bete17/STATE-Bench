@@ -1,0 +1,452 @@
+{
+  "task_id": "134-strategy_medical_international_change_cheaper",
+  "user_id": "user_004",
+  "task_summary": "Traveler wants the cheaper valid way to move an existing booking to 2026-07-05 and explicitly asks the agent to compare direct change versus cancel-and-rebook. Correct resolution: direct change is the cheaper valid path in this scenario because its fee burden is lower than cancel and rebook.\n\nChallenge: The agent must turn an international medical discount into the correct strategy choice.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "strategy_medical_international_change_cheaper_compare_both_paths",
+      "kind": "must",
+      "requirement": "Agent must present a comparison of the direct-change path (change fee + fare difference) against the cancel-and-rebook path (cancellation fee, refund, replacement fare) before executing any change.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Before any confirmed update, the agent gave a side-by-side comparison covering direct change ($50 medical change fee + $50 fare difference = $100) versus cancel-and-rebook ($174 cancellation fee, $696 refund, $920 replacement fare, net $224)."
+    },
+    {
+      "id": "strategy_medical_international_change_cheaper_choose_correct_strategy",
+      "kind": "must",
+      "requirement": "Agent must recommend direct change as the cheaper valid option for this booking.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly recommended the direct change as cheaper, stating 'Changing directly is cheaper by $124' and later reaffirming 'Direct change saves $124.'"
+    },
+    {
+      "id": "strategy_medical_international_change_cheaper_avoid_wrong_strategy",
+      "kind": "must_not",
+      "requirement": "Agent must not frame cancel and rebook as the cheaper valid option for this scenario.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent never described cancel-and-rebook as the cheaper valid option; throughout the conversation it consistently identified direct change as cheaper."
+    },
+    {
+      "id": "strategy_medical_international_change_cheaper_medical_discount_reasoning",
+      "kind": "must",
+      "requirement": "Agent must explain how the medical-reason change discount reduces the direct-change cost as part of its recommendation.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explained the medical discount as part of the recommendation, including 'including the medical change-fee discount' and later ' $100 standard change fee × 50% medical discount = $50,' showing how the discount reduced the direct-change cost."
+    },
+    {
+      "id": "strategy_medical_international_change_cheaper_no_premature_write",
+      "kind": "must_not",
+      "requirement": "Agent must not cancel, create, or update any booking before comparing both paths and identifying the cheaper valid strategy.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "Before the comparison and recommendation, the only booking modification-related calls were previews: cancel_booking(confirm=false) and update_booking(confirm=false). The actual update_booking(confirm=true) occurred only after the user approved the direct change."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.5,
+  "ux_reasoning": "The agent kept the comparison phase read-only, used safe previews for both cancellation and direct change, explicitly said nothing had been changed, and only executed the booking update after a clear later approval. It surfaced the key consent information before action: medical-discounted change fee, fare difference, cancellation refund, total added cost, the July 5 flight details, and the intent to keep preferences unchanged. User effort was good but not perfect because the traveler still needed one follow-up turn to get the side-by-side restated with the medical discount and search details spelled out, and the hidden tool work included some redundant searches plus an unnecessary policy lookup with the wrong loyalty tier parameter. Responses were concise and decision-focused overall, but the first answer was not fully complete for approval-level confidence, so density is strong rather than exceptional.",
+  "turns": 3,
+  "tool_calls": 12,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I need to move booking BK-1000 to July 5 because of a medical issue. Which is cheaper overall: direct change or cancel and rebook?"
+    },
+    {
+      "role": "assistant",
+      "content": "**Changing directly is cheaper by $124**, including the medical change-fee discount.\n\nFor July 5, I found nonstop **BA101, JFK → LHR, departing at 2:15 p.m.**, in economy for $920.\n\n| Option | Cost breakdown | Additional cost to you | Overall trip cost* |\n|---|---|---:|---:|\n| **Direct change** | $50 medical change fee + $50 fare difference | **$100** | **$970** |\n| Cancel and rebook | $696 refund from your original $870 payment, then buy the $920 ticket | $224 | $1,094 |\n\n*Includes your original payment and any cancellation/change costs. Your current seat and other preferences are preserved in the change quote.*\n\n**Nothing has been changed or canceled.** Would you like me to make the direct change for an additional $100?",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_004",
+            "flight_id": "BA100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "price_paid": 870,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-07T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "LHR",
+            "departure_time": "2026-06-30T11:30:00",
+            "route_type": "international"
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_004"
+          },
+          "result": {
+            "user_id": "user_004",
+            "name": "Noah Brown",
+            "email": "noah.brown@example.com",
+            "loyalty_tier": "silver",
+            "loyalty_points": 15000
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "loyalty_tier": "basic",
+            "route_type": "international"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "international"
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "cancellation_fee": 174,
+            "refund_amount": 696,
+            "reason": "International economy cancellation fee: max($75, 20% of $870) = $174"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "LHR",
+            "date": "2026-07-05",
+            "airline": "",
+            "time_range": "morning",
+            "max_stops": 0,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "LHR",
+            "date": "2026-07-05",
+            "airline": "",
+            "time_range": "early_morning",
+            "max_stops": 10,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "LHR",
+            "date": "2026-07-05",
+            "airline": "",
+            "time_range": "morning",
+            "max_stops": 10,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "LHR",
+            "date": "2026-07-05",
+            "airline": "",
+            "time_range": "afternoon",
+            "max_stops": 10,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "BA101",
+                "airline_code": "BA",
+                "origin": "JFK",
+                "destination": "LHR",
+                "departure_time": "2026-07-05T14:15:00",
+                "arrival_time": "2026-07-05T18:53:00",
+                "duration_minutes": 278,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 920,
+                  "business": 2080
+                },
+                "status": "scheduled",
+                "route_type": "international"
+              }
+            ]
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "LHR",
+            "date": "2026-07-05",
+            "airline": "",
+            "time_range": "evening",
+            "max_stops": 10,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "LHR",
+            "date": "2026-07-05",
+            "airline": "",
+            "time_range": "red_eye",
+            "max_stops": 10,
+            "max_price": -1
+          },
+          "result": {
+            "flights": [],
+            "message": "No flights found matching your criteria."
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "BA101",
+            "change_reason": "medical",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "BA101",
+            "change_fee": 50,
+            "fare_difference": 50,
+            "price_paid": 970
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Before I approve, can you give me the side-by-side again with the medical discount clearly applied to the direct change, and confirm the search details for the July 5 option: airline, time range, and number of stops? Also, please confirm the incremental out-of-pocket cost is $100 and that my existing booking preferences will stay unchanged."
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—**the incremental out-of-pocket cost for the direct change is $100**, as confirmed by the change preview.\n\n| Cost item | Direct change | Cancel and rebook |\n|---|---:|---:|\n| Change/cancellation fee | $100 standard change fee × 50% medical discount = **$50** | **$174** cancellation fee |\n| Fare adjustment | **$50** fare difference | $920 new ticket − $696 refund = **$224** |\n| **Incremental out-of-pocket cost** | **$100** | **$224** |\n| **Overall cost, including original payment** | **$970** | **$1,094** |\n\nThe $174 cancellation fee is already reflected in the $696 refund—not added again. **Direct change saves $124.**\n\n### July 5 option\n- **Airline:** British Airways (BA), flight **BA101**\n- **Route:** JFK → LHR\n- **Departure:** July 5, 2026, at **2:15 p.m.**\n- **Time range:** Afternoon (noon–5 p.m.)\n- **Stops:** **0 — nonstop**\n- **Economy fare:** $920\n\nThe search that found this option used **no airline restriction**, the **afternoon** time range, and **up to 10 stops**; the returned flight itself is nonstop.\n\nYour existing booking preferences were explicitly preserved in the preview: **economy, window-seat preference, standard meal, no Wi-Fi, no extra legroom, no insurance, and zero extra paid checked bags**.\n\n**Nothing has been changed or canceled yet.**",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Thanks, that’s what I needed. Since the direct change is the cheaper valid option and the added cost is $100, which is within my $600 budget, please go ahead and change BK-1000 to the July 5 BA101 afternoon nonstop, keeping my existing booking preferences unchanged."
+    },
+    {
+      "role": "assistant",
+      "content": "Your booking **BK-1000 has been changed successfully** to:\n\n- **British Airways BA101**, nonstop JFK → LHR\n- **July 5, 2026, at 2:15 p.m.**\n- **Economy**, with all existing preferences unchanged: window seat, standard meal, no Wi-Fi, extra legroom, or insurance, and no extra paid checked bags.\n\n**Additional cost: $100** — $50 medical-discounted change fee plus $50 fare difference, within your $600 budget.\n\nYour updated overall booking cost is **$970**.",
+      "tool_calls": [
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "BA101",
+            "change_reason": "medical",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "delay_compensation": "none",
+            "paid_checked_bags": 0,
+            "confirm": true
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-1000",
+            "changes_applied": [
+              "flight_id",
+              "change_reason"
+            ],
+            "price_paid": 970,
+            "change_fee": 50,
+            "fare_difference": 50
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "StateBenchAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "token_usage": {
+    "input_tokens": 28824,
+    "cached_input_tokens": 26349,
+    "output_tokens": 1300,
+    "reasoning_output_tokens": 29,
+    "total_tokens": 30124,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0
+  },
+  "input_tokens": 28824,
+  "cached_input_tokens": 26349,
+  "output_tokens": 1300,
+  "reasoning_output_tokens": 29,
+  "total_tokens": 30124,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "fare_difference": {
+            "old": null,
+            "new": 50
+          },
+          "change_fee": {
+            "old": null,
+            "new": 50
+          },
+          "price_paid": {
+            "old": 870,
+            "new": 970
+          },
+          "flight_id": {
+            "old": "BA100",
+            "new": "BA101"
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "change_fee",
+      "expected_value": 50
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "fare_difference",
+      "expected_value": 50
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "flight_id",
+      "expected_value": "BA101"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "price_paid",
+      "expected_value": 970
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 4,
+  "ux_response_density": 4,
+  "ux_base_score": 4.5,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 3,
+  "ux_tool_call_count": 12,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

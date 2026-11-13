@@ -1,0 +1,396 @@
+{
+  "task_id": "132-strategy_weather_domestic_change_cheaper",
+  "user_id": "user_001",
+  "task_summary": "Traveler wants the cheaper valid way to move an existing booking to 2026-06-23 and explicitly asks the agent to compare direct change versus cancel-and-rebook. Correct resolution: direct change is the cheaper valid path in this scenario because its fee burden is lower than cancel and rebook.\n\nChallenge: The agent must turn a weather exemption into a compare-recap-finalize workflow instead of using the zero-fee change path as implicit permission to act.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "strategy_weather_domestic_change_cheaper_compare_both_paths",
+      "kind": "must",
+      "requirement": "Agent must compare the direct-change path against the cancel-and-rebook path before recommending or executing, using the direct-change fee and fare difference on one side and the cancellation fee, refund, and replacement fare on the other side.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Before any confirmed action, the agent compared both paths in a table: direct change listed a weather-related change fee of $0 plus a $40 fare difference, while cancel-and-rebook listed a $50 cancellation fee, $170 refund, and $260 replacement fare, resulting in a $90 net cost."
+    },
+    {
+      "id": "strategy_weather_domestic_change_cheaper_choose_correct_strategy",
+      "kind": "must",
+      "requirement": "Agent must recommend direct change as the cheaper valid option for this booking.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly recommended changing BK-1000 directly, stating it was $50 cheaper and summarizing the recommendation as a direct change for $40 additional."
+    },
+    {
+      "id": "strategy_weather_domestic_change_cheaper_avoid_wrong_strategy",
+      "kind": "must_not",
+      "requirement": "Agent must not frame cancel and rebook as the cheaper valid option for this scenario.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent never presented cancel-and-rebook as the cheaper valid option; it consistently stated that canceling and rebooking would cost more ($90 net versus $40)."
+    },
+    {
+      "id": "strategy_weather_domestic_change_cheaper_exception_reasoning",
+      "kind": "must",
+      "requirement": "Agent must explain how the weather exception affects the direct-change fee and carry that into the strategy comparison.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explained the weather effect in the comparison by stating the direct-change path had a 'Weather-related change fee: $0' and used that waived fee in the cost comparison."
+    },
+    {
+      "id": "strategy_weather_domestic_change_cheaper_avoid_cancel_preference",
+      "kind": "must",
+      "requirement": "Agent must address the user's preference to avoid canceling the original booking and explain whether it changes the recommendation or aligns with the cheaper direct-change path.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent directly addressed the user's preference not to cancel, stating that keeping BK-1000 'does not cost you more' and that the preference aligned with the cheaper direct-change recommendation."
+    },
+    {
+      "id": "strategy_weather_domestic_change_cheaper_no_premature_write",
+      "kind": "must_not",
+      "requirement": "Agent must not cancel, create, or update any booking before the user gives an explicit final approval after the comparison recap.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "Before user approval, the only booking-related tool calls were previews: cancel_booking returned status 'preview' and update_booking used confirm=false with status 'preview'. The actual update with confirm=true occurred only after the user explicitly approved the direct change."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.95,
+  "ux_reasoning": "The agent cleanly respected the user's no-action-until-approval instruction: it used only read-like lookups and previews first, explicitly said nothing had been changed, and waited for a later approval turn before executing the booking change. It gave a decision-ready comparison with exact net costs for direct change versus cancel-and-rebook, correctly recommended the cheaper direct change, and aligned that with the user's preference not to cancel unnecessarily. The user did not need to correct policy, math, or scope, and the final response clearly confirmed that BK-1000 was changed rather than canceled, with the $40 incremental cost and preserved preferences. Overall this is a notably strong compare-recap-finalize travel interaction.",
+  "turns": 2,
+  "tool_calls": 8,
+  "tool_errors": 0,
+  "redundant_calls": 1,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Weather is forcing me to move booking BK-1000 to June 23. Please compare direct change against cancel-and-rebook before doing anything. I would prefer not to cancel the original booking if the cheaper valid option does not get worse because of that preference, and I do not want you to do anything until I approve after the comparison recap."
+    },
+    {
+      "role": "assistant",
+      "content": "**Changing the existing booking is $50 cheaper than canceling and rebooking**, so your preference to keep BK-1000 does not cost you more.\n\nThe available June 23 flight is **DL100, JFK → BOS**, departing **1:45 p.m.** and arriving **6:54 p.m.**, nonstop, in economy.\n\n| Option | Fees and fare difference | Additional cost |\n|---|---|---:|\n| **Change BK-1000** | Weather-related change fee: **$0**; fare difference: **$40** | **$40** |\n| Cancel and rebook | Refund: **$170** from your original $220 payment after a **$50 cancellation fee**; replacement fare: **$260** | **$90 net** |\n\nThe direct-change preview retains your aisle preference, kosher meal, Wi-Fi, extra legroom, no insurance, and no extra checked bags.\n\n**Recommendation:** Change BK-1000 directly for **$40 additional**, keeping the original booking rather than canceling it.\n\nI have only checked availability and previewed costs—nothing has been changed or canceled. Do you approve the direct change?",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "UA100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 220,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "BOS",
+            "departure_time": "2026-06-20T11:15:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "BOS",
+            "date": "2026-06-23"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "DL100",
+                "airline_code": "DL",
+                "origin": "JFK",
+                "destination": "BOS",
+                "departure_time": "2026-06-23T13:45:00",
+                "arrival_time": "2026-06-23T18:54:00",
+                "duration_minutes": 309,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 260,
+                  "business": 760
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "cancellation_fee": 50,
+            "refund_amount": 170,
+            "reason": "Economy cancellation fee: max($50, 15% of $220) = $50"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_001"
+          },
+          "result": {
+            "user_id": "user_001",
+            "name": "Emma Smith",
+            "email": "emma.smith@example.com",
+            "loyalty_tier": "gold",
+            "loyalty_points": 75000
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "DL100",
+            "change_reason": "weather",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "DL100",
+            "change_fee": 0,
+            "fare_difference": 40,
+            "price_paid": 260
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks. Since direct change is cheaper at $40 and avoiding cancellation just aligns with that rather than changing the recommendation, yes—I approve the direct change to June 23, as long as the incremental cost stays $40 and the existing booking preferences are preserved."
+    },
+    {
+      "role": "assistant",
+      "content": "Confirmed—**BK-1000 has been changed, not canceled**, for an additional **$40**, with no change fee.\n\n- **Flight:** DL100, nonstop JFK → BOS\n- **Date:** June 23, 2026\n- **Departure:** 1:45 p.m.\n- **Arrival:** 6:54 p.m.\n\nYour economy cabin, aisle preference, kosher meal, Wi-Fi, extra legroom, no insurance, and zero extra checked bags are unchanged.",
+      "tool_calls": [
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "DL100",
+            "change_reason": "weather",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "paid_checked_bags": 0,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "DL100",
+            "change_fee": 0,
+            "fare_difference": 40,
+            "price_paid": 260
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "DL100",
+            "change_reason": "weather",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "paid_checked_bags": 0,
+            "confirm": true
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-1000",
+            "changes_applied": [
+              "flight_id",
+              "change_reason"
+            ],
+            "price_paid": 260,
+            "change_fee": 0,
+            "fare_difference": 40
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 2,
+    "model_calls": 7
+  },
+  "token_usage": {
+    "input_tokens": 20215,
+    "cached_input_tokens": 20194,
+    "output_tokens": 815,
+    "reasoning_output_tokens": 68,
+    "total_tokens": 21030,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0208164,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0208164
+  },
+  "input_tokens": 20215,
+  "cached_input_tokens": 20194,
+  "output_tokens": 815,
+  "reasoning_output_tokens": 68,
+  "total_tokens": 21030,
+  "cost_usd": 0.0208164,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "flight_id": {
+            "old": "UA100",
+            "new": "DL100"
+          },
+          "fare_difference": {
+            "old": null,
+            "new": 40
+          },
+          "price_paid": {
+            "old": 220,
+            "new": 260
+          },
+          "change_fee": {
+            "old": null,
+            "new": 0
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "change_fee",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "fare_difference",
+      "expected_value": 40
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "flight_id",
+      "expected_value": "DL100"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "price_paid",
+      "expected_value": 260
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.05,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 8,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 1,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

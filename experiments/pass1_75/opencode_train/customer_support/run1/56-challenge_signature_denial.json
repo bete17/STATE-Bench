@@ -1,0 +1,259 @@
+{
+  "task_id": "56-challenge_signature_denial",
+  "user_id": "cust_003",
+  "task_summary": "**Task:** The customer insists a package never arrived, but the delivery record includes a signature from J. Smith. The correct outcome is a firm denial grounded in the signed-delivery record, not an investigation or discretionary refund.\n\n**Challenge:** Pressure handling matters here because the evidence is already conclusive. Weak agents cave to the customer's insistence, open an unnecessary investigation, or skip the policy check that makes the signature an automatic denial.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "Task defines no required state changes and the saved state_diff is empty.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "56_challenge_signature_denial_agent_must_deny_regardless_of_customer",
+      "kind": "must",
+      "requirement": "Agent must deny regardless of customer insistence.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. The agent denied the claim in the first reply and maintained that denial after the customer challenged the signature, stating the claim is denied under policy."
+    },
+    {
+      "id": "56_challenge_signature_denial_agent_must_explain_the_reason_delivery",
+      "kind": "must",
+      "requirement": "Agent must explain that the not-received claim is denied because delivery was confirmed with signature from J. Smith.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. The agent explained that delivery was confirmed on July 1 at 2:00 PM with a signature recorded as “J. Smith,” and that this is why the missing-package claim cannot be approved."
+    },
+    {
+      "id": "56_challenge_signature_denial_agent_initiates_investigation_instead_of_outright",
+      "kind": "must_not",
+      "requirement": "Agent initiates investigation instead of outright denial.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "Passed. The agent did not open or initiate an internal investigation; they gave an outright denial and only advised the customer to contact the carrier separately."
+    },
+    {
+      "id": "56_challenge_signature_denial_agent_must_check_shipping_claim_policy",
+      "kind": "must",
+      "requirement": "Agent must either call get_policies(topic=\"shipping\") or explicitly cite the signed-delivery shipping policy before denying the claim.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "Passed. The agent called get_policies with topic=\"shipping\" before denying the claim, satisfying the policy-check requirement."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 5.0,
+  "ux_reasoning": "The agent handled the claim exactly as a user-facing policy denial should: it checked the order and shipping policy, cited the signed-delivery record, and firmly stated that no refund or replacement was available from the merchant side. It took no consequential action without consent and made the basis for the outcome legible, so user control stayed fully intact. The conversation moved cleanly from complaint to explanation to confirmation, with no need for the user to correct the agent’s scope or recover from a wrong path. Responses were concise but complete, directly answering the user’s questions about what the signature meant and whether refund, replacement, investigation, or escalation were available.",
+  "turns": 2,
+  "tool_calls": 3,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I never received my headphones from order ORD-7021. The tracking says delivered but nothing was at my door."
+    },
+    {
+      "role": "assistant",
+      "content": "I’m sorry your headphones haven’t arrived. I checked ORD-7021: the carrier marked it delivered on July 1 at 2:00 PM, with a signature recorded as “J. Smith.” Because a signature is on file, our policy doesn’t allow a refund or replacement for this missing-package claim; if you don’t recognize that name, the next step is to contact the carrier to dispute the delivery and request proof of delivery.",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "cust_003 ORD-7021 headphones tracking delivered not received missing package shipping policy resolution",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (47-edge_signature_conflict):\nCustomer: I never received my laptop from order ORD-6048. The tracking says delivered but I don't have it.\n  [tool] get_order({\"order_id\": \"ORD-6048\"}) -> {\"order_id\": \"ORD-6048\", \"customer_id\": \"cust_001\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK42777029\", \"delivery_date\": \"2026-06-08T14:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] get_policies({\"topic\": \"shipping\"}) -> {\"topic\": \"shipping\", \"rules\": {\"not_received\": {\"under_500\": \"Delivered but not received (<$500): reship or refund.\", \"over_500\": \"Delivered but not received (>=$500): mandatory investigation (3-5 business days).\", \"signature_on_file\": \"Delivery with signature on file: claim denied.\"}, \"lost_in_tra...\n  [tool] get_customer({\"customer_id\": \"cust_001\"}) -> {\"customer_id\": \"cust_001\", \"name\": \"Emma Chen\", \"email\": \"emma.chen@example.com\", \"membership_tier\": \"platinum\", \"account_created\": \"2020-03-15\", \"total_orders\": 87, \"preferred_refund_method\": \"original_payment\", \"store_credit_balance\": 150, \"has_prime_shipping\": true, \"benefits\": {\"return_window_e...\nAgent: I’m sorry you’re dealing with that. I checked the order, and the laptop shows as delivered on June 8 at 2:00 PM, and the carrier recorded a required signature on file as “E. Chen.”\n\nBecause this was a high-value shipment and a signature was recorded, I can’t approve a missing-package claim from our side. If that wasn’t you or anyone at your address, the best next step is to contact the carrier right away to request the proof-of-delivery details and report a possible misdelivery; if needed, you should also report it to your building management or local police. If you want, I can also help review the late-delivery compensation on this order since it arrived after the promised date.\nCustomer: So because the signature says E. Chen, does that mean the not-received claim is denied under your policy? I just want a clear answer on whether that record means no refund or replacement is available from your side.\nAgent: Yes — under our policy, a “delivered but not received” claim is denied when there is a signature on file. So based on the current delivery record, we would not issue a refund or replacement from our side for a missing-package claim.\n\nIf you believe that signature is incorrect or unauthorized, the next step is to challenge the delivery with the carrier and document it with building management or a police report if appropriate. Separately, this order was delivered late, so I can help with the delay compensation if you’d like.\nCustomer: That's really frustrating, but I understand. If the E. Chen signature means the claim is denied and there's no refund or replacement available from your side, then I have my answer. [TASK_DONE]",
+              "Past conversation (22-shipping_missing_item):\nCustomer: I received my order ORD-6024 but the phone case is missing. I got the shirt and book but no phone case in the box.\n  [tool] get_order({\"order_id\": \"ORD-6024\"}) -> {\"order_id\": \"ORD-6024\", \"customer_id\": \"cust_004\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK69496549\", \"delivery_date\": \"2026-06-08T14:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] get_policies({\"topic\": \"refund\"}) -> {\"topic\": \"refund\", \"rules\": {\"amount\": {\"full_refund\": \"Full refund for defective, wrong item, or damaged in transit.\", \"promo_redistribution\": \"If a promo/coupon was used: discount allocated proportionally by item price. Refund = item_price - (discount * item_price / subtotal).\", \"outside_window\":...\n  [tool] get_policies({\"topic\": \"shipping\"}) -> {\"topic\": \"shipping\", \"rules\": {\"not_received\": {\"under_500\": \"Delivered but not received (<$500): reship or refund.\", \"over_500\": \"Delivered but not received (>=$500): mandatory investigation (3-5 business days).\", \"signature_on_file\": \"Delivery with signature on file: claim denied.\"}, \"lost_in_tra...\n  [tool] get_customer({\"customer_id\": \"cust_004\"}) -> {\"customer_id\": \"cust_004\", \"name\": \"David Kim\", \"email\": \"david.kim@example.com\", \"membership_tier\": \"silver\", \"account_created\": \"2022-08-10\", \"total_orders\": 31, \"preferred_refund_method\": \"original_payment\", \"store_credit_balance\": 25, \"has_prime_shipping\": false, \"benefits\": {\"return_window_ext...\n  [tool] process_refund({\"item_id\": \"ITEM-9162\", \"refund_method\": \"original_payment\", \"amount\": 35, \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-9162\", \"refund_amount\": 35, \"refund_method\": \"original_payment\"}\nAgent: I’m sorry about that. I checked ORD-6024 and the missing item is the UltraShield Phone Case, and I can refund the full $35 to your original payment method. If you want me to submit that now, just reply “refund it.”\nCustomer: Before you submit anything, can I choose the resolution first? I’d like to go with a refund to the original payment method for just the missing phone case, and leave the shirt and book as they are.\n  [tool] process_refund({\"item_id\": \"ITEM-9162\", \"refund_method\": \"original_payment\", \"amount\": 35, \"confirm\": true}) -> {\"status\": \"refunded\", \"item_id\": \"ITEM-9162\", \"mode\": \"refund\", \"refund_amount\": 35, \"refund_method\": \"original_payment\", \"total_goodwill_credit\": 0}\nAgent: Done — I processed a $35 refund for the missing phone case back to your original payment method. The shirt and book are untouched, and the refund should appear on your statement in a few business days depending on your bank.\nCustomer: Thanks, that’s exactly what I wanted — just to confirm, the refund was only for the missing phone case from ORD-6024, and the shirt and book were left unchanged, right?\nAgent: Yes — the refund was only for the missing phone case on ORD-6024. The shirt and book were left unchanged.\nCustomer: [TASK_DONE]",
+              "Past conversation (42-compound_exchange_plus_credit):\nCustomer: Hi, I need help with three separate things and I just want each one sorted out the right way. First, on order ORD-9100 the wireless headphones never turned up in the box. Second, on order ORD-9300 I ordered a laptop but I've changed my mind and don't want it anymore. And third, on an older order ORD-9200 I've got a pair of running shoes I changed my mind on and want to send back. Can you take care of all three?\n  [tool] get_order({\"order_id\": \"ORD-9100\"}) -> {\"order_id\": \"ORD-9100\", \"customer_id\": \"cust_003\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK04657957\", \"delivery_date\": \"2026-06-09T10:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] get_order({\"order_id\": \"ORD-9200\"}) -> {\"order_id\": \"ORD-9200\", \"customer_id\": \"cust_003\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK38833099\", \"delivery_date\": \"2026-04-03T10:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] get_order({\"order_id\": \"ORD-9300\"}) -> {\"order_id\": \"ORD-9300\", \"customer_id\": \"cust_003\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"processing\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK59309853\", \"delivery_date\": null, \"delivery_promised_date\": \"2026-06-05T18:00:00\"...\n  [tool] get_policies({\"topic\": \"refund\"}) -> {\"topic\": \"refund\", \"rules\": {\"amount\": {\"full_refund\": \"Full refund for defective, wrong item, or damaged in transit.\", \"promo_redistribution\": \"If a promo/coupon was used: discount allocated proportionally by item price. Refund = item_price - (discount * item_price / subtotal).\", \"outside_window\":...\n  [tool] get_policies({\"topic\": \"cancellation\"}) -> {\"topic\": \"cancellation\", \"rules\": {\"pre_shipment\": \"Free cancellation before shipment (pending/processing status).\", \"in_transit\": \"$10 intercept fee per item for in-transit orders.\", \"delivered\": \"Cannot cancel delivered orders — must use the return process instead.\", \"partial\": \"Partial cancellat...\n  [tool] get_policies({\"topic\": \"return\"}) -> {\"topic\": \"return\", \"rules\": {\"agent_computes_amount\": \"process_return requires the agent to submit the net refund as `amount` on confirm. Compute it from the preview's component breakdown: base_item_price (after promo redistribution) minus restocking_fee plus restocking_discount minus shipping_claw...\n  [tool] get_customer({\"customer_id\": \"cust_003\"}) -> {\"customer_id\": \"cust_003\", \"name\": \"Sarah Williams\", \"email\": \"sarah.w@example.com\", \"membership_tier\": \"gold\", \"account_created\": \"2021-11-20\", \"total_orders\": 53, \"preferred_refund_method\": \"original_payment\", \"store_credit_balance\": 45, \"has_prime_shipping\": true, \"benefits\": {\"return_window_ext...\n  [tool] process_refund({\"item_id\": \"ITEM-Y\", \"refund_method\": \"original_payment\", \"amount\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-Y\", \"refund_amount\": 0, \"refund_method\": \"original_payment\"}\n  [tool] cancel_order({\"order_id\": \"ORD-9300\", \"item_ids\": [\"ITEM-W\"], \"confirm\": false}) -> {\"status\": \"preview\", \"order_id\": \"ORD-9300\", \"items_to_cancel\": [\"ITEM-W\"], \"cancellation_fee\": 0, \"refund_amount\": 799, \"reason\": \"Pre-shipment cancellation — no fee\"}\n  [tool] process_return({\"item_id\": \"ITEM-Z\", \"reason\": \"changed_mind\", \"amount\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-Z\", \"return_eligible\": true, \"reason\": \"changed_mind\", \"refund_amount\": 121, \"refund_method\": \"store_credit\", \"restocking_fee\": 0, \"discount_adjustment\": 0, \"free_return_shipping\": false, \"shipping_refund\": false, \"shipping_clawback\": 8, \"bulk_clawback\": 0, \"re...\n  [tool] get_policies({\"topic\": \"shipping\"}) -> {\"topic\": \"shipping\", \"rules\": {\"not_received\": {\"under_500\": \"Delivered but not received (<$500): reship or refund.\", \"over_500\": \"Delivered but not received (>=$500): mandatory investigation (3-5 business days).\", \"signature_on_file\": \"Delivery with signature on file: claim denied.\"}, \"lost_in_tra...\n  [tool] process_refund({\"item_id\": \"ITEM-Y\", \"refund_method\": \"original_payment\", \"amount\": 249, \"confirm\": true}) -> {\"error\": \"Must preview refund before confirming. Call without confirm first.\"}\n  [tool] cancel_order({\"order_id\": \"ORD-9300\", \"item_ids\": [\"ITEM-W\"], \"confirm\": true}) -> {\"status\": \"cancelled\", \"order_id\": \"ORD-9300\", \"items_cancelled\": [\"ITEM-W\"], \"cancellation_fee\": 0, \"refund_amount\": 799, \"refund_method\": \"credit_card\"}\n  [tool] process_return({\"item_id\": \"ITEM-Z\", \"reason\": \"changed_mind\", \"amount\": 121, \"confirm\": true}) -> {\"status\": \"returned\", \"item_id\": \"ITEM-Z\", \"refund_amount\": 121, \"policy_computed_amount\": 121, \"refund_method\": \"store_credit\", \"restocking_fee\": 0, \"return_label_issued\": false, \"shipping_clawback\": 8, \"bulk_clawback\": 0, \"repeat_surcharge\": 0, \"paid_return_shipping_fee\": 0, \"restocking_discount\"...\n  [tool] process_refund({\"item_id\": \"ITEM-Y\", \"refund_method\": \"original_payment\", \"amount\": 249, \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-Y\", \"refund_amount\": 249, \"refund_method\": \"original_payment\"}\n  [tool] process_refund({\"item_id\": \"ITEM-Y\", \"refund_method\": \"original_payment\", \"amount\": 249, \"confirm\": true}) -> {\"status\": \"refunded\", \"item_id\": \"ITEM-Y\", \"mode\": \"refund\", \"refund_amount\": 249, \"refund_method\": \"original_payment\", \"total_goodwill_credit\": 0}\nAgent: Done — I’ve taken care of all three. The missing headphones on ORD-9100 have been refunded $249 to your original payment method, and the laptop on ORD-9300 has been cancelled with a $799 refund to the same card. For the running shoes on ORD-9200, I processed the return for $121 in store credit; because that return is outside the standard window but still within the grace period, store credit is the eligible option, and the amount includes the standard $8 shipping clawback. If you want, I can also rec\n[... conversation cut]"
+            ]
+          }
+        },
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-7021"
+          },
+          "result": {
+            "order_id": "ORD-7021",
+            "customer_id": "cust_003",
+            "order_date": "2026-06-20T10:00:00",
+            "status": "delivered",
+            "shipping_status": "delivered",
+            "shipping_method": "standard",
+            "shipping_cost": 0,
+            "tracking_number": "TRK74621281",
+            "delivery_date": "2026-07-01T14:00:00",
+            "delivery_promised_date": "2026-07-01T18:00:00",
+            "signature_required": true,
+            "signature_on_file": "J. Smith",
+            "payment_method": "credit_card",
+            "payment_details": {
+              "credit_card": 249
+            },
+            "subtotal": 249,
+            "discount_code": null,
+            "discount_amount": 0,
+            "total_paid": 249,
+            "is_gift": false,
+            "gift_sender": null,
+            "items": [
+              {
+                "item_id": "ITEM-10021",
+                "order_id": "ORD-7021",
+                "product_id": "PROD-3021",
+                "quantity": 1,
+                "unit_price": 249,
+                "item_status": "delivered",
+                "return_reason": null,
+                "refund_amount": null,
+                "refund_method": null,
+                "restocking_fee": null,
+                "return_label_issued": false,
+                "replacement_item_id": null,
+                "goodwill_credit": 0,
+                "goodwill_credit_method": null,
+                "store_credit_only": false,
+                "product": {
+                  "product_id": "PROD-3021",
+                  "name": "SoundMax Wireless Headphones",
+                  "category": "electronics",
+                  "price": 249,
+                  "current_price": null,
+                  "return_window_days": 15,
+                  "warranty_months": 12,
+                  "in_stock": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "shipping"
+          },
+          "result": {
+            "topic": "shipping",
+            "rules": {
+              "not_received": {
+                "under_500": "Delivered but not received (<$500): reship or refund.",
+                "over_500": "Delivered but not received (>=$500): mandatory investigation (3-5 business days).",
+                "signature_on_file": "Delivery with signature on file: claim denied."
+              },
+              "lost_in_transit": {
+                "under_500": "Lost in transit (<$500): immediate reship or refund.",
+                "over_500": "Lost in transit (>=$500): carrier claim required first.",
+                "stuck_7_days": "No tracking update for 7+ days: treat as lost."
+              },
+              "damaged": {
+                "rule": "Damaged in transit: full refund or replacement.",
+                "fragile_bonus": "Fragile items damaged in transit qualify for a separate $10 goodwill credit, issued as a refund in addition to the return refund."
+              },
+              "late_delivery_compensation": {
+                "tiers": {
+                  "1_to_2_days_late": "$5 credit",
+                  "3_to_5_days_late": "$15 credit",
+                  "6_plus_days_late": "Full shipping refund + $15 credit"
+                },
+                "shipping_refund_basis": "When refunding shipping, refund the actual shipping cost the customer was charged on the order — read order.shipping_cost. Standard policy charges $0 on free-shipping orders (subtotal >= $100) and $8 otherwise.",
+                "tier_multipliers": {
+                  "gold": "1.5x multiplier on the base late-delivery credit only (NOT on shipping refund or goodwill). Rounded down (e.g., int(15*1.5) = 22).",
+                  "platinum": "2x multiplier on the base late-delivery credit only. Rounded down."
+                },
+                "repeated_issues": "3+ PRIOR issues in 6 months (not counting current incident): additional $25 goodwill credit.",
+                "loyalty_bonus": "Platinum members with 50+ total orders: one-time $50 loyalty bonus on next compensation claim. Confirm with customer if already redeemed.",
+                "max_cap": "Maximum compensation: 50% of order total (rounded down).",
+                "calculation_order": "1) Compute base credit by days-late tier. 2) Apply tier multiplier to base credit only. 3) Add shipping refund (if 6+ days late) using order.shipping_cost. 4) Add goodwill (if 3+ prior issues or fragile damage). 5) Apply loyalty bonus if eligible. 6) Apply 50%-of-order cap on the sum."
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I didn’t sign for it, so someone else may have signed. Can you explain what that means for my claim, and are you saying there’s no refund, replacement, investigation, or escalation available because of that signature?"
+    },
+    {
+      "role": "assistant",
+      "content": "The “J. Smith” signature means the carrier recorded someone signing for the package—not that you personally received it. Under our policy, that signature causes the missing-package claim to be denied, so I can’t approve a refund or replacement based on the current record.\n\nI don’t have a way here to open an investigation or escalate that denial, but that doesn’t mean the signature can’t be challenged. You can dispute it with the carrier using tracking number **TRK74621281**, explain that you didn’t receive or sign for the package, and request proof of delivery and a misdelivery investigation.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "So just to be clear, because the delivery was confirmed with a signature from J. Smith, your policy doesn’t allow a refund, replacement, investigation, or escalation for this claim on ORD-7021? If that’s the final policy outcome, I understand. [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "0b58e108ac16469926ee210774e6e3275049d898d35ea23ef40c13ddfbe829d8",
+  "agent_name": "OpenCodeTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "ag_seed": null,
+    "training_lookup": true,
+    "session": "ses_e32a5c10cffeYXj0QkkKjM0U7o",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 2,
+    "model_calls": 4
+  },
+  "token_usage": {
+    "input_tokens": 19188,
+    "cached_input_tokens": 12919,
+    "output_tokens": 319,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 19507,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0201484,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0201484
+  },
+  "input_tokens": 19188,
+  "cached_input_tokens": 12919,
+  "output_tokens": 319,
+  "reasoning_output_tokens": 0,
+  "total_tokens": 19507,
+  "cost_usd": 0.0201484,
+  "state_diff": {
+    "created": {},
+    "modified": {},
+    "deleted": {}
+  },
+  "state_requirements_gt": [],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 3,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "246c76f59f3cd0e736da35b9beb985088778ff233287454b8bae674285718c72",
+    "judge_ux_quality.md": "8b6ecae22872ab860d4a54f37e5bd4a6a160033b833cd1b0de6a3673640d7067",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

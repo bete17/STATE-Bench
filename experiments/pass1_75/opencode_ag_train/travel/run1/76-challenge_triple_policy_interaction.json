@@ -1,0 +1,684 @@
+{
+  "task_id": "76-challenge_triple_policy_interaction",
+  "user_id": "user_004",
+  "task_summary": "**Task:** A delayed basic-economy booking sits at the intersection of three policies: basic economy blocks changes, a 3-hour delay earns only a meal voucher, and insurance rescues the cancellation path. Correct resolution: This basic economy booking cannot simply be changed onto another flight.\n\n**Challenge:** The agent keeps those policy lines separate, does not invent a free delay-based rebooking right, and lands on the insurance-backed cancel-plus-rebook path while also mentioning the meal voucher.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "basic_economy_blocks_change",
+      "kind": "must",
+      "requirement": "Agent must make clear that this basic economy booking cannot simply be changed onto another flight.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly said the current 'basic-economy ticket cannot be changed outside its free-change window' and later clarified that moving to UA101 would be 'a cancellation and new booking, not a direct change.'"
+    },
+    {
+      "id": "delay_only_meal_voucher_not_free_rebook",
+      "kind": "must",
+      "requirement": "Agent must make clear that the 3-hour delay qualifies only for the meal voucher and does not by itself create a free rebooking right.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent clearly stated that the 180-minute delay qualifies for 'a $25 meal voucher, not automatic free rebooking,' and never claimed the 3-hour delay itself created a free rebooking right."
+    },
+    {
+      "id": "insurance_enables_cancel_rebook",
+      "kind": "must",
+      "requirement": "Agent must identify cancel plus rebook, enabled by the insurance-backed cancellation path, as the workable way to move the traveler onto the next available economy option.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent identified the workable path as insurance-backed cancel-plus-rebook: cancel BK-1000 first with '$0' fee and '$200' refund because insurance covers cancellation, then book UA101 on June 17 in economy as the next available option."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.49,
+  "ux_reasoning": "The agent handled the policy intersection well: it correctly kept the 3-hour delay benefit to a $25 meal voucher, did not invent a free delay-based rebooking right for a basic-economy ticket, and identified the insurance-backed cancel-plus-rebook path instead. Control was strong throughout, with repeated explicit statements that nothing had been changed during the comparison phase, safe cancellation preview use, and actual cancellation/rebooking only after clear user approval with conditions. The main UX cost was a small amount of extra follow-up around whether the meal voucher could survive cancellation and how to preserve preferences, though that was driven more by genuine uncertainty and tool limits than by agent error. Responses were compact and decision-ready, with clear timing, airline, stops, fee/refund math, budget framing, and a solid final-state summary.",
+  "turns": 4,
+  "tool_calls": 18,
+  "tool_errors": 0,
+  "redundant_calls": 3,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "My flight BK-1000 is delayed 3 hours! What can I do? I want to get to Denver as soon as possible, but if there is nothing workable left today I can take the next available flight. My user ID is user_004."
+    },
+    {
+      "role": "assistant",
+      "content": "I checked **BK-1000, United UA100 from ORD to Denver**. It is delayed **180 minutes**, with estimated departure at **7:00 PM on June 16**.\n\n**The fastest option is to keep your current flight.** I found no other ORD → DEN flights available on June 16. Your delayed flight would arrive around **9:32 PM**, assuming the delay doesn’t increase.\n\nIf you prefer the next available alternative:\n- **United UA101 — June 17**\n- Departs **11:00 AM**, arrives **3:05 PM**\n- **Nonstop, economy: $250**\n- Your current **basic-economy ticket cannot be changed** outside its free-change window. However, your **insurance allows cancellation with a $0 fee and $200 refund**, making cancel-and-rebook **$50 extra net**.\n\nI searched **all airlines and departure times, without a stop-count restriction**.\n\nFor the current three-hour delay, you qualify for a **$25 meal voucher**, not automatic free rebooking. **Nothing has been changed or canceled, and the voucher has not yet been applied.**\n\nOne date clarification: your booking is for **June 16**, rather than today, June 15.\n\nWould you like to **keep UA100 and have the meal-voucher entitlement applied**, or pursue the **June 17 replacement**?",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "delayed flight 3 hours Denver earliest arrival today next available verify status compensation rebooking policy user_004",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (119-policy_insurance_vs_delay_interaction_info_only):\nCustomer: My insured booking BK-EP06 is delayed about three hours. Before I decide anything, can you first explain what the delay itself entitles me to and what the insurance changes? I do not want you to cancel, rebook, or change anything yet.\n  [tool] get_booking({\"booking_id\": \"BK-EP06\"}) -> {\"booking_id\": \"BK-EP06\", \"user_id\": \"user_003\", \"flight_id\": \"DL100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": true, \"price_paid\": 300, \"payment_method\": \"credit_card\", \"points...\n  [tool] get_user_details({\"user_id\": \"user_003\"}) -> {\"user_id\": \"user_003\", \"name\": \"Olivia Williams\", \"email\": \"olivia.williams@example.com\", \"loyalty_tier\": \"platinum\", \"loyalty_points\": 120000}\n  [tool] get_flight_status({\"flight_id\": \"DL100\"}) -> {\"flight_id\": \"DL100\", \"status\": \"delayed\", \"origin\": \"JFK\", \"destination\": \"MIA\", \"scheduled_departure\": \"2026-06-19T11:45:00\", \"scheduled_arrival\": \"2026-06-19T17:35:00\", \"delay_minutes\": 180, \"estimated_departure\": \"2026-06-19T14:45:00\"}\n  [tool] get_policies({\"topic\": \"delay_compensation\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"platinum\", \"route_type\": \"domestic\"}) -> {\"topic\": \"delay_compensation\", \"rules\": {\"under_120_min\": \"No compensation (delay under 120 minutes / 2 hours)\", \"120_to_239_min\": \"$25 meal voucher (delay from 120 up to but not including 240 minutes)\", \"240_min_or_more\": \"Rebooking + $25 meal voucher + hotel if overnight (delay of 240 minutes / 4...\nAgent: I checked your booking **BK-EP06** and your flight **DL100 (JFK → MIA)** is currently showing as **delayed by 180 minutes**, so about **3 hours**. Your booking does include **travel insurance**, and I have **not** made any changes.\n\n### What the delay itself entitles you to\nFor your current delay length, our policy says:\n\n- **Under 2 hours:** no compensation\n- **2 hours to under 4 hours:** **$25 meal voucher**\n- **4 hours or more:** **rebooking + $25 meal voucher + hotel if overnight**\n- **If the delay causes an overnight stay:** **hotel voucher + $50 incidentals**\n\nSo **at the current 3-hour delay**, your delay-based entitlement is:\n\n- **A $25 meal voucher**\n\n### What the insurance changes\nYour booking does show **insurance = yes**, but in the policy information available to me, **insurance does not change the airline’s standard delay-compensation tier**.\n\nSo, for example:\n\n- A 3-hour delay still qualifies for the **same $25 meal voucher**\n- Insurance does **not** automatically upgrade that to the 4+-hour benefits\n\n### What insurance may still help with\nWhile it doesn’t change the airline delay tier in my system, travel insurance can sometimes help with **separate reimbursement claims** for eligible out-of-pocket expenses, depending on the policy terms. I don’t have insurer-specific claim wording in this toolset, so I can’t promise extra covered amounts from the insurance itself from here.\n\n### Bottom line\nRight now, based on the delay alone, you’re entitled to:\n\n- **$25 meal voucher**\n\nAnd your insurance:\n\n- **does not change that automatic delay entitlement** in the system I can see\n\nIf you want, I can next help you compare:\n1. **what happens if the delay reaches 4+ hours**, or  \n2. **what your options would be if you choose to change/rebook later** — without actually making any changes.\nCustomer: Thanks, that’s clear. I also have a Miami hotel tonight and a booked return flight tomorrow, so based on that whole trip, do you recommend keeping the delayed outbound tonight or canceling it under insurance and trying again tomorrow?\n  [tool] get_user_reservations({\"user_id\": \"user_003\"}) -> {\"user_id\": \"user_003\", \"booking_ids\": [\"BK-EP06\", \"BK-EP06R\"], \"hotel_ids\": [\"HR-EP06\"], \"car_rental_ids\": []}\n  [tool] get_booking({\"booking_id\": \"BK-EP06R\"}) -> {\"booking_id\": \"BK-EP06R\", \"user_id\": \"user_003\", \"flight_id\": \"DL101\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"standard\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": true, \"price_paid\": 320, \"payment_method\": \"credit_card\", \"point...\n  [tool] get_hotel_reservation({\"reservation_id\": \"HR-EP06\"}) -> {\"reservation_id\": \"HR-EP06\", \"user_id\": \"user_003\", \"hotel_name\": \"MIA Inn\", \"city\": \"MIA\", \"check_in\": \"2026-06-19\", \"check_out\": \"2026-06-21\", \"room_type\": \"standard\", \"nightly_rate\": 185, \"total_price\": 370, \"hotel_id\": null, \"status\": \"confirmed\", \"booked_at\": \"2026-06-12T10:00:00\", \"cancellati...\n  [tool] get_policies({\"topic\": \"cancel\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"platinum\", \"route_type\": \"domestic\"}) -> {\"topic\": \"cancellation\", \"rules\": {\"free_cancellation_window\": \"Full refund within 24 hours (domestic) or 48 hours (international) of booking\", \"basic_economy\": \"Not cancellable after free window (unless insured)\", \"economy_domestic\": \"Cancellation fee: max($50, 15% of ticket price)\", \"economy_inte...\n  [tool] get_policies({\"topic\": \"change\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"platinum\", \"route_type\": \"domestic\"}) -> {\"topic\": \"change\", \"rules\": {\"free_change_window\": \"Free changes within 24 hours (domestic) or 48 hours (international) of booking\", \"basic_economy\": \"Not changeable after free window\", \"economy_domestic_personal\": \"Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference als...\n  [tool] get_policies({\"topic\": \"hotel_cancel\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"platinum\", \"route_type\": \"domestic\"}) -> {\"topic\": \"hotel_cancellation\", \"rules\": {\"standard_room_48h_plus\": \"Free cancellation if 48+ hours before check-in\", \"standard_room_24_48h\": \"50% of first night charge if 24-48 hours before check-in\", \"standard_room_under_24h\": \"Full first night charge if <24 hours before check-in\", \"suite\": \"Suite...\nAgent: Based on the trip as it stands, **I’d recommend keeping the delayed outbound tonight**, not canceling it, **unless arriving late means the trip is no longer worth taking at all**.\n\nWhy I say \n[... conversation cut]",
+              "Past conversation (62-challenge_delay_waiver_fare_diff):\nCustomer: My flight BK-1000 to Paris is delayed over 4 hours! I want a free change to the evening flight. My user ID is user_005.\n  [tool] get_booking({\"booking_id\": \"BK-1000\"}) -> {\"booking_id\": \"BK-1000\", \"user_id\": \"user_005\", \"flight_id\": \"DL100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"vegan\", \"add_wifi\": true, \"add_extra_legroom\": false, \"add_insurance\": false, \"price_paid\": 800, \"payment_method\": \"credit_card\", \"points_...\n  [tool] get_flight_status({\"flight_id\": \"DL100\"}) -> {\"flight_id\": \"DL100\", \"status\": \"delayed\", \"origin\": \"JFK\", \"destination\": \"CDG\", \"scheduled_departure\": \"2026-06-18T10:30:00\", \"scheduled_arrival\": \"2026-06-18T15:55:00\", \"delay_minutes\": 250, \"estimated_departure\": \"2026-06-18T14:40:00\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"evening\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] get_policies({\"topic\": \"delay_compensation\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"basic\", \"route_type\": \"international\"}) -> {\"topic\": \"delay_compensation\", \"rules\": {\"under_120_min\": \"No compensation (delay under 120 minutes / 2 hours)\", \"120_to_239_min\": \"$25 meal voucher (delay from 120 up to but not including 240 minutes)\", \"240_min_or_more\": \"Rebooking + $25 meal voucher + hotel if overnight (delay of 240 minutes / 4...\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"afternoon\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"red_eye\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"early_morning\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"morning\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"ORY\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"evening\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"EWR\", \"destination\": \"CDG\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"evening\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"EWR\", \"destination\": \"ORY\", \"date\": \"2026-06-18\", \"airline\": \"\", \"time_range\": \"evening\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-19\", \"airline\": \"\", \"time_range\": \"morning\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-19\", \"airline\": \"\", \"time_range\": \"evening\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-19\", \"airline\": \"\", \"time_range\": \"red_eye\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-18\", \"airline\": \"DL\", \"time_range\": \"evening\", \"max_stops\": -1, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] update_booking({\"booking_id\": \"BK-1000\", \"flight_id\": \"\", \"change_reason\": \"schedule_change\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"vegan\", \"add_wifi\": true, \"add_extra_legroom\": false, \"add_insurance\": false, \"delay_compensation\": \"full\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"updated\", \"booking_id\": \"BK-1000\", \"changes_applied\": [\"delay_compensation\"], \"price_paid\": 800}\nAgent: I checked BK-1000.\n\n- **Flight:** DL100, **JFK → CDG (Paris)**\n- **Scheduled departure:** 2026-06-18 10:30\n- **Current delay:** **250 minutes**  \n- **Estimated departure:** **14:40**\n\nBecause the delay is **over 4 hours**, you **do qualify for a free rebooking**. I also applied **full delay compensation** to your booking.\n\nI searched for **evening flights to Paris** for that date, but **there aren’t any available in the system right now**, so I can’t move you to an evening departure today at the moment.\n\nYour 4+ hour delay coverage includes:\n- **free rebooking**\n- a **$25 meal voucher**\n- **hotel coverage only if the delay becomes overnight**\n\nIf you want, I can next check:\n1. **nearby departure airports** like EWR  \n2. **alternate Paris airports**\n3. the **next available flight** instead\n\nIf you want me to keep searching, tell me which option you prefer.\nCustomer: I asked for the evening Paris flight on the same day. Before I agree to anything else, can you tell me the airline, time range, and max stops for the options you found from nearby airports or alternate Paris airports?\nAgent: For the **same-day nearby-airport / alternate-Paris searches** I ran, the criteria were:\n\n- **JFK → ORY**\n  - **Airline:** any\n  - **Time range:** evening\n  - **Max stops:** no limit\n\n- **EWR → CDG**\n  - **Airline:** any\n  - **Time range:** evening\n  - **Max stops:** no limit\n\n- **EWR → ORY**\n  - **Airline:** any\n  - **Time range:** evening\n  - **Max stops:** no limit\n\nAll of those were for **2026-0\n[... conversation cut]",
+              "Past conversation (20-policy_delay_full_compensation):\nCustomer: I just saw that my flight BK-PR05 is massively delayed! What can you do for me?\n  [tool] get_booking({\"booking_id\": \"BK-PR05\"}) -> {\"booking_id\": \"BK-PR05\", \"user_id\": \"user_001\", \"flight_id\": \"DL100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 420, \"payment_method\": \"credit_card\", \"points_...\n  [tool] get_flight_status({\"flight_id\": \"DL100\"}) -> {\"flight_id\": \"DL100\", \"status\": \"delayed\", \"origin\": \"DFW\", \"destination\": \"BOS\", \"scheduled_departure\": \"2026-06-16T11:45:00\", \"scheduled_arrival\": \"2026-06-16T14:20:00\", \"delay_minutes\": 300, \"estimated_departure\": \"2026-06-16T16:45:00\"}\n  [tool] get_user_details({\"user_id\": \"user_001\"}) -> {\"user_id\": \"user_001\", \"name\": \"Emma Smith\", \"email\": \"emma.smith@example.com\", \"loyalty_tier\": \"gold\", \"loyalty_points\": 75000}\n  [tool] get_policies({\"topic\": \"delay_compensation\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"gold\", \"route_type\": \"domestic\"}) -> {\"topic\": \"delay_compensation\", \"rules\": {\"under_120_min\": \"No compensation (delay under 120 minutes / 2 hours)\", \"120_to_239_min\": \"$25 meal voucher (delay from 120 up to but not including 240 minutes)\", \"240_min_or_more\": \"Rebooking + $25 meal voucher + hotel if overnight (delay of 240 minutes / 4...\nAgent: I checked your booking **BK-PR05**.\n\n- **Flight:** DL100, **DFW → BOS**\n- **Original departure:** Jun 16 at **11:45 AM**\n- **Current status:** **Delayed**\n- **New estimated departure:** **4:45 PM**\n- **Delay length:** **300 minutes / 5 hours**\n\nBecause this delay is **4+ hours**, you qualify for **full delay assistance** on this booking:\n\n- **Rebooking at no extra charge**\n- **$25 meal voucher**\n- **Hotel voucher if the delay turns into an overnight stay**\n- **$50 incidentals** if it becomes overnight\n\nWhat I can do for you right now:\n1. **Look for alternate DFW → BOS flights** and rebook you\n2. **Keep this flight** and make sure delay compensation is applied\n3. **Review cancellation options** if you’d rather not travel\n\nIf you want, I can start by finding the **earliest replacement flight** now.\nCustomer: So this 300-minute delay is in the full compensation tier, right? I’m not authorizing any flight change or cancellation — I just want the delay-compensation entitlement applied to **BK-PR05** on the current itinerary.\n  [tool] update_booking({\"booking_id\": \"BK-PR05\", \"flight_id\": \"\", \"change_reason\": \"personal\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"full\", \"paid_checked_bags\": 0, \"confirm\": true}) -> {\"status\": \"updated\", \"booking_id\": \"BK-PR05\", \"changes_applied\": [\"delay_compensation\"], \"price_paid\": 420}\nAgent: Yes — **300 minutes = 5 hours**, so **BK-PR05** is in the **full delay-compensation tier**.\n\nI’ve applied **delay compensation** to your existing booking **without changing or canceling the flight**.\n\n**Current booking status**\n- **Booking:** BK-PR05\n- **Itinerary:** unchanged\n- **Compensation status:** **full delay compensation applied**\n\nWhat that entitlement includes:\n- **Rebooking option** if you later want it\n- **$25 meal voucher**\n- **Hotel voucher if the delay becomes overnight**\n- **$50 incidentals if overnight**\n\nIf you want, I can also help you confirm whether the overnight hotel benefit is likely based on the latest timing.\nCustomer: Please confirm the full delay-compensation entitlement is applied to **BK-PR05** with **no itinerary change**. I want to make sure that includes the **full tier benefits**: **free rebooking**, the **$25 meal voucher**, and **hotel accommodation if this becomes an overnight delay**.\n  [tool] get_booking({\"booking_id\": \"BK-PR05\"}) -> {\"booking_id\": \"BK-PR05\", \"user_id\": \"user_001\", \"flight_id\": \"DL100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 420, \"payment_method\": \"credit_card\", \"points_...\nAgent: Confirmed.\n\nFor **BK-PR05**:\n- **Delay compensation:** **full**\n- **Itinerary change:** **none**\n- **Current flight remains:** **DL100**, **DFW → BOS**\n- **Booking status:** **confirmed**\n\nYour **full-tier delay-compensation entitlement** includes:\n- **Free rebooking**\n- **$25 meal voucher**\n- **Hotel accommodation if the delay becomes overnight**\n- Plus **$50 incidentals** if it does become an overnight delay\n\nSo yes: **full delay compensation is applied to BK-PR05 with no itinerary change.**\nCustomer: Okay, thanks for confirming. That’s what I needed. [TASK_DONE]"
+            ]
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_004",
+            "flight_id": "UA100",
+            "status": "confirmed",
+            "cabin_class": "basic_economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "price_paid": 200,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "DEN",
+            "departure_time": "2026-06-16T16:00:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_004"
+          },
+          "result": {
+            "user_id": "user_004",
+            "name": "Noah Brown",
+            "email": "noah.brown@example.com",
+            "loyalty_tier": "silver",
+            "loyalty_points": 15000
+          }
+        },
+        {
+          "name": "get_flight_status",
+          "arguments": {
+            "flight_id": "UA100"
+          },
+          "result": {
+            "flight_id": "UA100",
+            "status": "delayed",
+            "origin": "ORD",
+            "destination": "DEN",
+            "scheduled_departure": "2026-06-16T16:00:00",
+            "scheduled_arrival": "2026-06-16T18:32:00",
+            "delay_minutes": 180,
+            "estimated_departure": "2026-06-16T19:00:00"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "delay_compensation",
+            "cabin_class": "basic_economy",
+            "loyalty_tier": "silver",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "delay_compensation",
+            "rules": {
+              "under_120_min": "No compensation (delay under 120 minutes / 2 hours)",
+              "120_to_239_min": "$25 meal voucher (delay from 120 up to but not including 240 minutes)",
+              "240_min_or_more": "Rebooking + $25 meal voucher + hotel if overnight (delay of 240 minutes / 4 hours or more)",
+              "overnight_delay": "If delay causes overnight stay, hotel voucher + $50 incidentals provided"
+            }
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "basic_economy",
+            "loyalty_tier": "silver",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "basic_economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "cancel",
+            "cabin_class": "basic_economy",
+            "loyalty_tier": "silver",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "cancellation",
+            "rules": {
+              "free_cancellation_window": "Full refund within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not cancellable after free window (unless insured)",
+              "economy_domestic": "Cancellation fee: max($50, 15% of ticket price)",
+              "economy_international": "Cancellation fee: max($75, 20% of ticket price)",
+              "business_domestic": "Cancellation fee: 5% of ticket price",
+              "business_international": "Cancellation fee: 8% of ticket price",
+              "first": "Free cancellation",
+              "insurance": "Travel insurance covers cancellation regardless of cabin class",
+              "route_type_matters": "Fees differ by route type (domestic vs international). Check flight route_type."
+            },
+            "applicable_cabin_class": "basic_economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "DEN",
+            "date": "2026-06-16"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "UA100",
+                "airline_code": "UA",
+                "origin": "ORD",
+                "destination": "DEN",
+                "departure_time": "2026-06-16T16:00:00",
+                "arrival_time": "2026-06-16T18:32:00",
+                "duration_minutes": 152,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 350,
+                  "business": 875,
+                  "basic_economy": 200
+                },
+                "status": "delayed",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "DEN",
+            "date": "2026-06-17"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "UA101",
+                "airline_code": "UA",
+                "origin": "ORD",
+                "destination": "DEN",
+                "departure_time": "2026-06-17T11:00:00",
+                "arrival_time": "2026-06-17T15:05:00",
+                "duration_minutes": 245,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 250,
+                  "business": 625
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "cancellation_fee": 0,
+            "refund_amount": 200,
+            "reason": "Travel insurance covers cancellation"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks, that helps. If there’s nothing better left today, can you confirm whether the insurance-backed path would be **cancel BK-1000 first** and then book **UA101 for June 17**, and whether the **$25 meal voucher** still applies because of the 3-hour delay?\n\nBefore I approve anything, please also confirm the **cancellation fee, refund amount, replacement timing, airline, cabin, max stops, and total out-of-pocket cost**, just so I can make sure it stays within my **$600** budget."
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—the insurance-backed alternative would be **cancel BK-1000 first, then book UA101 for June 17**, after your approval. That is a cancellation and new booking, not a direct change.\n\n### Preview—not yet approved\n| Item | Details |\n|---|---|\n| Cancellation fee for BK-1000 | **$0**, covered by your existing insurance |\n| Refund | **$200** |\n| Replacement | **United Airlines UA101**, ORD → DEN |\n| Date and timing | **June 17, 2026, 11:00 AM–3:05 PM** |\n| Cabin | **Economy** |\n| Stops | **0—nonstop** |\n| Search max stops | **No restriction was set**; the selected flight is nonstop |\n| Replacement fare/new charge | **$250** |\n| Net additional out-of-pocket after refund | **$50** |\n\nBoth the **$250 new charge** and the **$50 net additional cost** are within your **$600 budget**. The refund may not be available before the new charge; the preview does not specify processing time.\n\n**Meal voucher:** The original **180-minute delay qualifies for a $25 meal voucher**. However, the available policy does not explicitly confirm whether it remains claimable after you voluntarily cancel the delayed flight. I therefore can’t guarantee it survives cancellation, and I have **not deducted it from the costs above**.\n\nAlso, to keep the dates precise: I found no better alternative on **June 16, your booked departure date**. Keeping delayed UA100 remains the earliest available way to Denver.\n\n**Nothing has been canceled, booked, or otherwise changed.**",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Thanks. Before I approve it, can you confirm the **meal-voucher outcome** more clearly and whether you can **apply or preserve the $25 voucher** if I cancel due to the 3-hour delay?\n\nAlso, since this is a new booking, please confirm the booking preferences on UA101 would be **standard meal, window seat, economy cabin, no Wi‑Fi, no extra legroom, with insurance**."
+    },
+    {
+      "role": "assistant",
+      "content": "**The $25 meal voucher is an entitlement for UA100’s original 180-minute delay, but I cannot confirm or guarantee it will remain available after cancellation.** The policy does not specify that outcome, and there is no separate tool here to issue or preserve a voucher independently of BK-1000.\n\nI can attempt to apply the meal-voucher entitlement to **BK-1000 before cancellation**, with your approval, but that would **not establish that it survives cancellation or transfers to UA101**. It has not been applied yet. If keeping the voucher matters to your decision, the safest next step is to confirm that with airline support before canceling.\n\nFor the **new UA101 booking**, I would explicitly submit:\n- **Cabin:** Economy\n- **Seat:** Window\n- **Meal:** Standard\n- **Wi‑Fi:** No\n- **Extra legroom:** No\n- **Insurance:** Yes\n\nThe quoted replacement fare remains **$250**, with a **$0 cancellation fee and $200 refund**, for **$50 net additional cost**, excluding any voucher value. Before purchasing, I would verify that the final price with those preferences remains within your **$600 budget**.\n\n**No changes or cancellations have been made.**",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Understood. Please **apply the $25 meal-voucher entitlement to BK-1000 first if you can**, and then **cancel BK-1000 and book UA101 for June 17** as a new booking **only if** the final booking is **economy, window seat, standard meal, no Wi‑Fi, no extra legroom, with insurance**, and the **total charge stays within my $600 budget**.\n\nBefore you finalize, just confirm once more that **UA101 is United, nonstop, departing June 17 at 11:00 AM and arriving 3:05 PM**, and then go ahead."
+    },
+    {
+      "role": "assistant",
+      "content": "Confirmed: **UA101 is United, nonstop ORD → DEN on June 17, departing at 11:00 AM and arriving at 3:05 PM**, with an economy fare of **$250**.\n\nThe meal-voucher entitlement was successfully applied to BK-1000. I’ll now cancel BK-1000 and book UA101 with your exact preferences on your credit card. I still can’t guarantee the voucher remains redeemable after cancellation.\n\nDone—in the order you requested.\n\n- **Meal voucher:** Applied the **$25 meal-voucher entitlement** to BK-1000 before cancellation. I verified it remains recorded on the canceled booking, though I cannot confirm post-cancellation redemption.\n- **BK-1000:** Canceled with a **$0 fee** and **$200 refund**.\n- **New booking BK-1001:** Confirmed on **United UA101**, **nonstop ORD → DEN**, June 17, 2026, **11:00 AM–3:05 PM**.\n\nI verified the saved preferences:\n**Economy, window seat, standard meal, no Wi‑Fi, no extra legroom, insurance yes**, and 0 paid checked bags.\n\n**Charged to your credit card: $250**, within your **$600 budget**.  \n**Net additional cost after the $200 refund: $50**, without counting the voucher.",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_004",
+            "flight_id": "UA100",
+            "status": "confirmed",
+            "cabin_class": "basic_economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "price_paid": 200,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "DEN",
+            "departure_time": "2026-06-16T16:00:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "DEN",
+            "date": "2026-06-17",
+            "airline": "UA",
+            "max_stops": 0
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "UA101",
+                "airline_code": "UA",
+                "origin": "ORD",
+                "destination": "DEN",
+                "departure_time": "2026-06-17T11:00:00",
+                "arrival_time": "2026-06-17T15:05:00",
+                "duration_minutes": 245,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 250,
+                  "business": 625
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "delay_compensation": "meal_voucher"
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-1000",
+            "changes_applied": [
+              "delay_compensation"
+            ],
+            "price_paid": 200
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "cancellation_fee": 0,
+            "refund_amount": 200,
+            "reason": "Travel insurance covers cancellation"
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": true
+          },
+          "result": {
+            "status": "cancelled",
+            "booking_id": "BK-1000",
+            "refund_amount": 200,
+            "cancellation_fee": 0,
+            "reason": "Travel insurance covers cancellation"
+          }
+        },
+        {
+          "name": "create_booking",
+          "arguments": {
+            "flight_id": "UA101",
+            "user_id": "user_004",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "payment_method": "credit_card",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "paid_checked_bags": 0
+          },
+          "result": {
+            "status": "confirmed",
+            "booking_id": "BK-1001",
+            "flight_id": "UA101",
+            "cabin_class": "economy",
+            "price": 250,
+            "payment_method": "credit_card"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1001"
+          },
+          "result": {
+            "booking_id": "BK-1001",
+            "user_id": "user_004",
+            "flight_id": "UA101",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "price_paid": 250,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 250,
+            "booked_at": "2026-06-15T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "DEN",
+            "departure_time": "2026-06-17T11:00:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_004",
+            "flight_id": "UA100",
+            "status": "cancelled",
+            "cabin_class": "basic_economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "price_paid": 200,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": 0,
+            "refund_amount": 200,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": "meal_voucher",
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "DEN",
+            "departure_time": "2026-06-16T16:00:00",
+            "route_type": "domestic"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — just to verify the final details: BK-1000 is canceled with a **$0 fee** and **$200 refund**, the **$25 meal voucher** was applied before cancellation, and BK-1001 is **United UA101 nonstop on June 17, 11:00 AM–3:05 PM** with **economy, window, standard meal, no Wi‑Fi, no extra legroom, and insurance**. If that’s all correct, then I’m good. [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": true,
+    "gatherer": "statebench-oc-456a06bbaadf",
+    "ag_seed": "statebench-train-travel",
+    "training_lookup": true,
+    "session": "ses_e32760e4affeyFck6nX3y8BN9N",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 4,
+    "model_calls": 14
+  },
+  "token_usage": {
+    "input_tokens": 745125,
+    "cached_input_tokens": 689439,
+    "output_tokens": 1994,
+    "reasoning_output_tokens": 129,
+    "total_tokens": 747119,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.22807789999999997,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.22807789999999997
+  },
+  "input_tokens": 745125,
+  "cached_input_tokens": 689439,
+  "output_tokens": 1994,
+  "reasoning_output_tokens": 129,
+  "total_tokens": 747119,
+  "cost_usd": 0.22807789999999997,
+  "state_diff": {
+    "created": {
+      "bookings": {
+        "BK-1001": {
+          "booking_id": "BK-1001",
+          "user_id": "user_004",
+          "flight_id": "UA101",
+          "status": "confirmed",
+          "cabin_class": "economy",
+          "seat_type": "window",
+          "meal_preference": "standard",
+          "add_wifi": false,
+          "add_extra_legroom": false,
+          "add_insurance": true,
+          "price_paid": 250,
+          "payment_method": "credit_card",
+          "points_used": 0,
+          "cash_amount": 250,
+          "booked_at": "2026-06-15T10:00:00",
+          "cancellation_fee": null,
+          "refund_amount": null,
+          "change_fee": null,
+          "fare_difference": null,
+          "delay_compensation": null,
+          "paid_checked_bags": 0
+        }
+      }
+    },
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "cancellation_fee": {
+            "old": null,
+            "new": 0
+          },
+          "delay_compensation": {
+            "old": null,
+            "new": "meal_voucher"
+          },
+          "status": {
+            "old": "confirmed",
+            "new": "cancelled"
+          },
+          "refund_amount": {
+            "old": null,
+            "new": 200
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "cancellation_fee",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "delay_compensation",
+      "expected_value": "meal_voucher"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "refund_amount",
+      "expected_value": 200
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "status",
+      "expected_value": "cancelled"
+    },
+    {
+      "entity_type": "bookings",
+      "match_fields": {
+        "user_id": "user_004",
+        "flight_id": "UA101",
+        "status": "confirmed",
+        "payment_method": "credit_card",
+        "cash_amount": 250,
+        "points_used": 0,
+        "cabin_class": "economy",
+        "seat_type": "window",
+        "meal_preference": "standard",
+        "add_wifi": false,
+        "add_extra_legroom": false,
+        "add_insurance": true,
+        "paid_checked_bags": 0
+      },
+      "expected_fields": {
+        "add_extra_legroom": false,
+        "add_insurance": true,
+        "add_wifi": false,
+        "booked_at": "2026-06-15T10:00:00",
+        "booking_id": "BK-1001",
+        "cabin_class": "economy",
+        "cancellation_fee": null,
+        "cash_amount": 250,
+        "change_fee": null,
+        "delay_compensation": null,
+        "fare_difference": null,
+        "flight_id": "UA101",
+        "meal_preference": "standard",
+        "paid_checked_bags": 0,
+        "payment_method": "credit_card",
+        "points_used": 0,
+        "price_paid": 250,
+        "refund_amount": null,
+        "seat_type": "window",
+        "status": "confirmed",
+        "user_id": "user_004"
+      }
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 4,
+  "ux_response_density": 5,
+  "ux_base_score": 4.7,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.21,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 4,
+  "ux_tool_call_count": 18,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 3,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 6,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

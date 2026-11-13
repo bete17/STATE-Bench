@@ -1,0 +1,458 @@
+{
+  "task_id": "39-compound_intl_delay_not_free_plus_partial_bag_plus_insurance_drop_state",
+  "user_id": "user_004",
+  "task_summary": "**Task:** user_004 (Noah, silver, insured) is on BK-V (JFK to CDG on DL800, economy international), delayed 200 minutes. He wants to move to the later same-day flight DL801, add 2 checked bags, and keep his insurance. A 200-minute delay does NOT waive the change fee (only 240+ does), so this is an international personal change at $100. As a silver member on economy he gets 2 free checked bags, so both bags are covered (paid_checked_bags=0). His insurance must be preserved through the change (add_insurance stays True). Correct end state: BK-V on DL801, change_fee 100, paid_checked_bags 0, add_insurance True.\n\n**Challenge:** Three independent traps on one change — the agent must not treat the 200-minute delay as making the move free (the $100 international fee applies), must not bill the 2 checked bags that the silver allowance covers, and must preserve the insurance flag rather than dropping it when rewriting the booking. Missing any one — a free change, billed bags, or dropped insurance — fails the deterministic state check; the change preview does not surface the baggage or insurance errors.",
+  "state_requirements_met": 0,
+  "state_requirements_reasoning": "State requirements failed: missing_assertions=1; unexpected_assertions=2",
+  "state_requirements_details": {
+    "missing_assertions": [
+      {
+        "entity_type": "bookings",
+        "record_key": "BK-V",
+        "field": "price_paid",
+        "value": 820
+      }
+    ],
+    "unexpected_assertions": [
+      {
+        "entity_type": "bookings",
+        "record_key": "BK-V",
+        "field": "paid_checked_bags",
+        "value": 2
+      },
+      {
+        "entity_type": "bookings",
+        "record_key": "BK-V",
+        "field": "price_paid",
+        "value": 890
+      }
+    ]
+  },
+  "task_requirements_met": 0,
+  "task_requirements_details": [
+    {
+      "id": "intl_delay_does_not_waive_change_fee",
+      "kind": "must",
+      "requirement": "Agent must make clear that the 200-minute delay does not waive the international change fee, so the move carries the standard fee.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The assistant explicitly said the 200-minute delay does not qualify for complimentary rebooking and quoted the standard $100 international change fee; the tool calls also used change_reason='personal' and previewed change_fee=100."
+    },
+    {
+      "id": "bags_covered_by_silver_allowance",
+      "kind": "must",
+      "requirement": "Agent must recognize that the 2 checked bags are covered by the traveler's silver free-checked-bag allowance and are not paid extras.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": false,
+      "reasoning": "The assistant incorrectly told the user the 2 checked bags would cost $70 and confirmed '2 extra checked bags: $70.' Tool calls also set paid_checked_bags=2, showing the agent did not recognize the bags should be free under the silver allowance."
+    },
+    {
+      "id": "insurance_preserved_through_change",
+      "kind": "must_not",
+      "requirement": "Agent must not drop the travel insurance on BK-V when changing the flight; it must remain in place.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The assistant stated the travel insurance would be kept, both update_booking calls included add_insurance=true, and the final get_booking shows add_insurance=true, so there is no evidence the insurance was dropped."
+    }
+  ],
+  "task_completion_pass": 0,
+  "ux_user_control": 2,
+  "ux_score": 1.65,
+  "ux_reasoning": "The agent bundled preview and execution in the same turn and completed a consequential flight change with charges without waiting for a separate confirmation after presenting the cost, which weakens user control. It also materially misframed the cost by charging $70 for two checked bags even though the user's silver status was available in the tools and should have covered both bags for free, so the execution was not fully informed. Tool evidence shows failed update attempts around delay compensation and a silent state mutation anyway, which would likely create follow-up repair work if the user notices the incorrect baggage charge. It did correctly keep insurance and apply the $100 change fee, but the final response was actively misleading on the total charge and booking economics.",
+  "turns": 1,
+  "tool_calls": 11,
+  "tool_errors": 2,
+  "redundant_calls": 1,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hi — my flight BK-V (JFK to CDG on DL800) is delayed about 200 minutes, so I'd like to move to the later flight DL801 the same day. Please also add 2 checked bags, and keep my travel insurance. Keep everything else the same. My user ID is user_004 and put anything owed on my credit card."
+    },
+    {
+      "role": "assistant",
+      "content": "DL801 departs June 24 at 17:15. The preview shows a $100 change fee and no fare difference; the two additional checked bags cost $70. Your 200-minute delay qualifies for a $25 meal voucher, but not complimentary rebooking. I’ll keep your insurance and all other preferences unchanged and charge the amount owed to your credit card.\n\nYour booking **BK-V is now confirmed on DL801**, JFK → CDG, departing **June 24 at 17:15**.\n\n- Added **2 extra checked bags**: $70\n- Change fee: $100; fare difference: $0\n- **Total additional charge: $170**, using your existing credit-card payment method\n- Travel insurance retained; economy, window seat, standard meal, and other preferences unchanged\n\nThe original 200-minute delay qualifies for a **$25 meal voucher**, but the system rejected applying it after the flight change. It has **not been issued**.",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-V"
+          },
+          "result": {
+            "booking_id": "BK-V",
+            "user_id": "user_004",
+            "flight_id": "DL800",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "price_paid": 720,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-03T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "CDG",
+            "departure_time": "2026-06-24T11:45:00",
+            "route_type": "international"
+          }
+        },
+        {
+          "name": "get_flight_status",
+          "arguments": {
+            "flight_id": "DL800"
+          },
+          "result": {
+            "flight_id": "DL800",
+            "status": "delayed",
+            "origin": "JFK",
+            "destination": "CDG",
+            "scheduled_departure": "2026-06-24T11:45:00",
+            "scheduled_arrival": "2026-06-24T15:06:00",
+            "delay_minutes": 200,
+            "estimated_departure": "2026-06-24T15:05:00"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "CDG",
+            "date": "2026-06-24",
+            "airline": "DL"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "DL800",
+                "airline_code": "DL",
+                "origin": "JFK",
+                "destination": "CDG",
+                "departure_time": "2026-06-24T11:45:00",
+                "arrival_time": "2026-06-24T15:06:00",
+                "duration_minutes": 201,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 720,
+                  "business": 2100
+                },
+                "status": "delayed",
+                "route_type": "international"
+              },
+              {
+                "flight_id": "DL801",
+                "airline_code": "DL",
+                "origin": "JFK",
+                "destination": "CDG",
+                "departure_time": "2026-06-24T17:15:00",
+                "arrival_time": "2026-06-24T20:13:00",
+                "duration_minutes": 178,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 720,
+                  "business": 2100
+                },
+                "status": "scheduled",
+                "route_type": "international"
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "delay_compensation",
+            "cabin_class": "economy",
+            "route_type": "international"
+          },
+          "result": {
+            "topic": "delay_compensation",
+            "rules": {
+              "under_120_min": "No compensation (delay under 120 minutes / 2 hours)",
+              "120_to_239_min": "$25 meal voucher (delay from 120 up to but not including 240 minutes)",
+              "240_min_or_more": "Rebooking + $25 meal voucher + hotel if overnight (delay of 240 minutes / 4 hours or more)",
+              "overnight_delay": "If delay causes overnight stay, hotel voucher + $50 incidentals provided"
+            }
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "route_type": "international"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "international"
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_004"
+          },
+          "result": {
+            "user_id": "user_004",
+            "name": "Noah Brown",
+            "email": "noah.brown@example.com",
+            "loyalty_tier": "silver",
+            "loyalty_points": 15000
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "baggage",
+            "cabin_class": "economy",
+            "route_type": "international"
+          },
+          "result": {
+            "topic": "baggage",
+            "carry_on": 1,
+            "base_checked_bags": 1,
+            "loyalty_bonus_checked_bags": 0,
+            "checked_bags_free": 1,
+            "checked_bag_fee": 35,
+            "oversized_bag_fee": 100,
+            "cabin_class": "economy",
+            "loyalty_tier": "basic"
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-V",
+            "flight_id": "DL801",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "paid_checked_bags": 2,
+            "delay_compensation": "meal_voucher",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-V",
+            "flight_id": "DL801",
+            "change_fee": 100,
+            "fare_difference": 0,
+            "price_paid": 820
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-V",
+            "flight_id": "DL801",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "paid_checked_bags": 2,
+            "delay_compensation": "meal_voucher",
+            "confirm": true
+          },
+          "result": {
+            "error": "Incorrect delay_compensation 'meal_voucher'. Flight is not delayed."
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-V",
+            "delay_compensation": "meal_voucher"
+          },
+          "result": {
+            "error": "Incorrect delay_compensation 'meal_voucher'. Flight is not delayed."
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-V"
+          },
+          "result": {
+            "booking_id": "BK-V",
+            "user_id": "user_004",
+            "flight_id": "DL801",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "window",
+            "meal_preference": "standard",
+            "add_wifi": false,
+            "add_extra_legroom": false,
+            "add_insurance": true,
+            "price_paid": 890,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-03T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": 100,
+            "fare_difference": 0,
+            "delay_compensation": null,
+            "paid_checked_bags": 2,
+            "origin": "JFK",
+            "destination": "CDG",
+            "departure_time": "2026-06-24T17:15:00",
+            "route_type": "international"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — just to confirm, BK-V is now moved to DL801 on June 24 at 17:15, the 2 checked bags were added, my travel insurance stayed on the booking, and the total charged was $170 on my card? [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 1,
+    "model_calls": 7
+  },
+  "token_usage": {
+    "input_tokens": 21907,
+    "cached_input_tokens": 21886,
+    "output_tokens": 791,
+    "reasoning_output_tokens": 139,
+    "total_tokens": 22698,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.021805599999999998,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.021805599999999998
+  },
+  "input_tokens": 21907,
+  "cached_input_tokens": 21886,
+  "output_tokens": 791,
+  "reasoning_output_tokens": 139,
+  "total_tokens": 22698,
+  "cost_usd": 0.021805599999999998,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-V": {
+          "flight_id": {
+            "old": "DL800",
+            "new": "DL801"
+          },
+          "paid_checked_bags": {
+            "old": 0,
+            "new": 2
+          },
+          "fare_difference": {
+            "old": null,
+            "new": 0
+          },
+          "price_paid": {
+            "old": 720,
+            "new": 890
+          },
+          "change_fee": {
+            "old": null,
+            "new": 100
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-V",
+      "field": "change_fee",
+      "expected_value": 100
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-V",
+      "field": "fare_difference",
+      "expected_value": 0
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-V",
+      "field": "flight_id",
+      "expected_value": "DL801"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-V",
+      "field": "price_paid",
+      "expected_value": 820
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 2,
+  "ux_response_density": 1,
+  "ux_base_score": 1.8,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.15,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 1,
+  "ux_tool_call_count": 11,
+  "ux_tool_error_count": 2,
+  "ux_repeated_identical_tool_call_count": 1,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

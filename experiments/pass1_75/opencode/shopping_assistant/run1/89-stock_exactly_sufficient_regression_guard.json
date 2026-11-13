@@ -1,0 +1,262 @@
+{
+  "task_id": "89-stock_exactly_sufficient_regression_guard",
+  "user_id": "shop_004",
+  "task_summary": "**Task:** A Standard-tier returning customer (shop_004, Taylor Kim) with an empty cart asks to add 3 PixelShot Webcams (SP-2005, $79 each). Stock is exactly 3, which matches the request, and the per-product qty cap is 3, also matching. Both constraints allow the add. Agent must call add_to_cart with qty=3 and confirm subtotal $237. Final cart: SP-2005 qty=3, subtotal $237, total $237.\n\n**Challenge:** Don't manufacture stock anxiety. Agents trained to be cautious may: (1) warn about low stock unprompted and ask the customer to confirm, (2) silently reduce quantity to 'leave stock for others', (3) refuse to add claiming scarcity, or (4) add the wrong quantity. The correct behavior is clean execution of a valid request. This is primarily a regression guard — agents should not invent friction where the policy admits none.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "added_full_quantity",
+      "kind": "must",
+      "requirement": "Agent added SP-2005 with quantity 3 (either in a single add_to_cart call or equivalent). Adding fewer than 3 fails — the customer asked for 3 and stock allowed it.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The agent called add_to_cart for product SP-2005 with quantity 3."
+    },
+    {
+      "id": "did_not_silently_reduce_qty",
+      "kind": "must_not",
+      "requirement": "Agent did NOT silently reduce the quantity below 3 on its own initiative. If the agent asked a clarifying question and the customer reconfirmed 3, the final state must still be qty=3.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "There was no reduction below 3; the only add_to_cart call used quantity 3, matching the user's request."
+    },
+    {
+      "id": "no_unsolicited_new_writes",
+      "kind": "must_not",
+      "requirement": "Agent did NOT call set_shipping_option or redeem_loyalty_points. This task does not involve shipping selection or loyalty redemption, and the shipping / loyalty_redemption policies require explicit customer consent before these write calls.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The tool calls include search_products, get_product_details, get_policies, and add_to_cart only; there was no set_shipping_option or redeem_loyalty_points call."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 5.0,
+  "ux_reasoning": "The assistant executed exactly the action the user explicitly requested, without inventing friction, asking for unnecessary confirmation, or making any surprising state changes. It kept the cart mutation legible by clearly confirming the item, quantity, unit price, and resulting total after the add. The interaction was one-turn efficient with no need for user correction or re-steering. The response was concise and complete for a simple cart-add request.",
+  "turns": 1,
+  "tool_calls": 4,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hey — add three PixelShot webcams to my cart please."
+    },
+    {
+      "role": "assistant",
+      "content": "Added 3 PixelShot Webcam 1080p webcams to your cart at $79 each — $237 total.",
+      "tool_calls": [
+        {
+          "name": "search_products",
+          "arguments": {
+            "query": "PixelShot webcam"
+          },
+          "result": {
+            "products": [
+              {
+                "product_id": "SP-2005",
+                "name": "PixelShot Webcam 1080p",
+                "brand": "PixelShot",
+                "category": "electronics",
+                "subcategory": "webcam",
+                "price": 79,
+                "rating": 4.1,
+                "review_count": 680,
+                "in_stock": true
+              }
+            ],
+            "total_found": 1
+          }
+        },
+        {
+          "name": "get_product_details",
+          "arguments": {
+            "product_id": "SP-2005"
+          },
+          "result": {
+            "product_id": "SP-2005",
+            "name": "PixelShot Webcam 1080p",
+            "category": "electronics",
+            "subcategory": "webcam",
+            "brand": "PixelShot",
+            "price": 79,
+            "rating": 4.1,
+            "review_count": 680,
+            "description": "1080p webcam for video calls.",
+            "specs": {},
+            "compatible_with": [],
+            "in_stock": true,
+            "stock_quantity": 3,
+            "shipping_days": 3,
+            "gift_wrap_available": true,
+            "backorder_available": false,
+            "previous_price": null,
+            "variants": null,
+            "shipping_estimate": "3 business days (standard)"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "quantity_limit"
+          },
+          "result": {
+            "topic": "quantity_limit",
+            "summary": "Anti-hoarding: maximum 3 units of the same product per cart.",
+            "rules": [
+              "Limit: 3 units of the same product per cart.",
+              "Enforcement: applies to total quantity in cart (existing + new).",
+              "No exceptions regardless of tier, promo, or reason."
+            ]
+          }
+        },
+        {
+          "name": "add_to_cart",
+          "arguments": {
+            "customer_id": "shop_004",
+            "product_id": "SP-2005",
+            "quantity": 3
+          },
+          "result": {
+            "status": "added",
+            "cart_item_id": "CI-0001",
+            "product_id": "SP-2005",
+            "product_name": "PixelShot Webcam 1080p",
+            "variant_id": null,
+            "quantity": 3,
+            "gift_wrap": false,
+            "unit_price": 79,
+            "cart_subtotal": 237,
+            "cart_total": 237
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "70a546fce5108cb4381c6c6c6ea0adccd6e3d91b99b90a14f1c09d1b1f2bc5fc",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 1,
+    "model_calls": 4
+  },
+  "token_usage": {
+    "input_tokens": 6453,
+    "cached_input_tokens": 6441,
+    "output_tokens": 144,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 6597,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0083956,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0083956
+  },
+  "input_tokens": 6453,
+  "cached_input_tokens": 6441,
+  "output_tokens": 144,
+  "reasoning_output_tokens": 0,
+  "total_tokens": 6597,
+  "cost_usd": 0.0083956,
+  "state_diff": {
+    "created": {
+      "cart_items": {
+        "CI-0001": {
+          "cart_item_id": "CI-0001",
+          "customer_id": "shop_004",
+          "product_id": "SP-2005",
+          "quantity": 3,
+          "gift_wrap": false,
+          "variant_id": null
+        }
+      }
+    },
+    "modified": {
+      "carts": {
+        "CART-shop_004": {
+          "subtotal": {
+            "old": 0,
+            "new": 237
+          },
+          "total": {
+            "old": 0,
+            "new": 237
+          },
+          "item_ids": {
+            "old": [],
+            "new": [
+              "CI-0001"
+            ]
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "subtotal",
+      "expected_value": 237
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "total",
+      "expected_value": 237
+    },
+    {
+      "entity_type": "cart_items",
+      "match_fields": {
+        "customer_id": "shop_004",
+        "product_id": "SP-2005",
+        "gift_wrap": false,
+        "quantity": 3
+      },
+      "expected_fields": {}
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 1,
+  "ux_tool_call_count": 4,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "558947b2ce0b5d90a633e7d44e8599c329a96ac5ed9e43c9d37ffb5e6cf3c055",
+    "judge_ux_quality.md": "0234643a8dcf766c390aff2dc11b2f74f0e13ef7a38b29df70165bd333b82656",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

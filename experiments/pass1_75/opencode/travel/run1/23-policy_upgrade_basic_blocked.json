@@ -1,0 +1,299 @@
+{
+  "task_id": "23-policy_upgrade_basic_blocked",
+  "user_id": "user_005",
+  "task_summary": "**Task:** User asks about upgrading two bookings, one basic economy and one regular economy, with a $700 budget. Correct resolution: Booking BK-PR08a cannot be upgraded because it is a basic economy fare.\n\n**Challenge:** The agent blocks the basic-economy upgrade, quotes the eligible economy-to-business upgrade correctly for the second booking, and frames the result against the user’s budget before proceeding only on the eligible booking.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 0,
+  "task_requirements_details": [
+    {
+      "id": "state_basic_blocked",
+      "kind": "must",
+      "requirement": "Agent must explain that booking BK-PR08a cannot be upgraded because it is a basic economy fare.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The assistant explicitly said BK-PR08a is 'basic economy, which isn’t eligible for upgrades' and that it was left unchanged."
+    },
+    {
+      "id": "state_second_booking_upgrade_cost",
+      "kind": "must",
+      "requirement": "Agent must explain that booking BK-PR08b can be upgraded to business for a $420 fare difference.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The assistant stated BK-PR08b was upgraded to business class for an additional $420, matching the required $420 fare difference."
+    },
+    {
+      "id": "state_budget_tradeoff",
+      "kind": "must",
+      "requirement": "Agent must explain that the $420 upgrade for BK-PR08b fits within the user’s $700 budget, while still making clear that only the second booking is eligible.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The assistant did not explicitly explain that the $420 upgrade fits within the user's $700 budget. It said only that the booking total would be $700, while correctly noting BK-PR08a was ineligible."
+    }
+  ],
+  "task_completion_pass": 0,
+  "ux_user_control": 2,
+  "ux_score": 3.0,
+  "ux_reasoning": "The agent correctly identified BK-PR08a as basic economy and therefore ineligible for upgrade, and it correctly computed BK-PR08b’s business upgrade as $420 extra, with preferences preserved. However, it performed the paid upgrade immediately in the same turn rather than clearly previewing the eligible option and obtaining explicit confirmation in a later user turn, which is a notable user-control failure for a consequential travel change. User effort stayed fairly low because the user did not have to correct facts or re-steer the task, and the response was concise and easy to read. Still, it missed a better framing step by not explicitly tying the $420 extra to the user’s $700 budget before acting.",
+  "turns": 1,
+  "tool_calls": 6,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I have two upcoming flights and I'd like to upgrade both to business class. My bookings are BK-PR08a and BK-PR08b."
+    },
+    {
+      "role": "assistant",
+      "content": "- **BK-PR08b — Miami → Boston, June 25:** Upgraded to **business class** for an additional **$420**, bringing the booking total to $700. Your aisle seat preference, vegan meal, and Wi-Fi remain unchanged.\n- **BK-PR08a — Boston → Miami, June 18:** This booking is **basic economy**, which isn’t eligible for upgrades. I’ve left it unchanged.\n\nWould you like me to explore replacement options for BK-PR08a?",
+      "tool_calls": [
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-PR08a"
+          },
+          "result": {
+            "booking_id": "BK-PR08a",
+            "user_id": "user_005",
+            "flight_id": "B6100",
+            "status": "confirmed",
+            "cabin_class": "basic_economy",
+            "seat_type": "aisle",
+            "meal_preference": "vegan",
+            "add_wifi": true,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "price_paid": 150,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "BOS",
+            "destination": "MIA",
+            "departure_time": "2026-06-18T16:45:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-PR08b"
+          },
+          "result": {
+            "booking_id": "BK-PR08b",
+            "user_id": "user_005",
+            "flight_id": "B6101",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "vegan",
+            "add_wifi": true,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "price_paid": 280,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "MIA",
+            "destination": "BOS",
+            "departure_time": "2026-06-25T10:00:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_005"
+          },
+          "result": {
+            "user_id": "user_005",
+            "name": "Ava Garcia",
+            "email": "ava.garcia@example.com",
+            "loyalty_tier": "basic",
+            "loyalty_points": 12000
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "upgrade"
+          },
+          "result": {
+            "topic": "upgrade",
+            "rules": {
+              "economy_to_business": "Upgrade fee = target cabin listed price minus amount already paid",
+              "business_to_first": "Upgrade fee = target cabin listed price minus amount already paid",
+              "economy_to_first": "Not available directly (must upgrade to business first)",
+              "basic_economy": "Not eligible for upgrades"
+            },
+            "applicable_cabin_class": "economy"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "MIA",
+            "destination": "BOS",
+            "date": "2026-06-25"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "B6101",
+                "airline_code": "B6",
+                "origin": "MIA",
+                "destination": "BOS",
+                "departure_time": "2026-06-25T10:00:00",
+                "arrival_time": "2026-06-25T12:40:00",
+                "duration_minutes": 160,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 280,
+                  "business": 700
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-PR08b",
+            "cabin_class": "business"
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-PR08b",
+            "changes_applied": [
+              "cabin_class"
+            ],
+            "price_paid": 700
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — just to confirm, BK-PR08b was upgraded to business for $420 total extra and stays within my $700 budget, and BK-PR08a could not be upgraded and was left unchanged, right? [TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 1,
+    "model_calls": 4
+  },
+  "token_usage": {
+    "input_tokens": 8794,
+    "cached_input_tokens": 8782,
+    "output_tokens": 318,
+    "reasoning_output_tokens": 41,
+    "total_tokens": 9112,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0125647,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0125647
+  },
+  "input_tokens": 8794,
+  "cached_input_tokens": 8782,
+  "output_tokens": 318,
+  "reasoning_output_tokens": 41,
+  "total_tokens": 9112,
+  "cost_usd": 0.0125647,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-PR08b": {
+          "cabin_class": {
+            "old": "economy",
+            "new": "business"
+          },
+          "fare_difference": {
+            "old": null,
+            "new": 420
+          },
+          "price_paid": {
+            "old": 280,
+            "new": 700
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-PR08b",
+      "field": "cabin_class",
+      "expected_value": "business"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-PR08b",
+      "field": "fare_difference",
+      "expected_value": 420
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-PR08b",
+      "field": "price_paid",
+      "expected_value": 700
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 4,
+  "ux_response_density": 4,
+  "ux_base_score": 3.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 1,
+  "ux_tool_call_count": 6,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

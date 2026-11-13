@@ -1,0 +1,254 @@
+{
+  "task_id": "56-stale_seeded_total_price_drop",
+  "user_id": "shop_004",
+  "task_summary": "**Task:** A returning Standard customer (shop_004) has a pre-seeded cart with SP-1001 SlimBook Air 13. The cart's stored subtotal is STALE at $849; the current price has dropped to $799 (previous_price=$849). Customer asks for the total. Agent must verify current prices via get_product, detect the price drop via previous_price field, proactively tell customer about the drop, and ensure final cart reflects $799.\n\n**Challenge:** Stale-seeded total on price drop — INVERSE of T49 (price increase). Pitfall 1: agent trusts get_cart's stale $849 subtotal and silently overcharges. Pitfall 2: agent sees the drop but doesn't surface it. Pitfall 3: agent states $799 without recomputing the stored cart total. Pitfall 4: agent fabricates the price history. Tests whether agent treats seeded cart numbers as authoritative vs. as cached values that need price-recheck on resumption. A deployment risk: customers who come back after a price drop should benefit from the lower price, not pay the stale higher one.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 0,
+  "task_requirements_details": [
+    {
+      "id": "checked_current_price_via_tool",
+      "kind": "must",
+      "requirement": "Agent called get_product (or equivalent) for SP-1001 — not just get_cart. Relying only on get_cart's cached subtotal fails the price-recheck requirement.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The agent did call an equivalent product lookup tool for SP-1001: `get_product_details` returned the current price $799 and `previous_price` $849."
+    },
+    {
+      "id": "detected_and_flagged_price_drop",
+      "kind": "must",
+      "requirement": "Agent proactively told the customer that SP-1001's price dropped from $849 (previous) to $799 (current). Must cite both numbers or the $50 delta. Silent substitution of the lower price without acknowledging the drop is acceptable but sub-optimal; failing to cite the drop explicitly when quoting the total fails. Quoting the stale $849 without flagging also fails.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "The agent did not proactively tell the customer the item's price had dropped from $849 to $799 before the user inferred it. The first reply only described an 'unexplained $50 difference' rather than explicitly flagging a price drop."
+    },
+    {
+      "id": "quoted_correct_current_total",
+      "kind": "must",
+      "requirement": "When asked the total, agent gave the correct CURRENT total of $799 — not the stale $849, not a fabricated middle number.",
+      "evidence": "conversation",
+      "passed": false,
+      "reasoning": "When first asked for the cart total, the agent answered '$849,' which was the stale cached total. The correct current total was $799, and the agent only gave that after the user asked to update the cart."
+    },
+    {
+      "id": "no_unsolicited_new_writes",
+      "kind": "must_not",
+      "requirement": "Agent did NOT call set_shipping_option or redeem_loyalty_points. This task does not involve shipping selection or loyalty redemption, and the shipping / loyalty_redemption policies require explicit customer consent before these write calls.",
+      "evidence": "tool_calls",
+      "passed": true,
+      "reasoning": "The agent did not call `set_shipping_option` or `redeem_loyalty_points`. The only write was `update_cart_item`, which was responsive to the user's request to update the cart price."
+    }
+  ],
+  "task_completion_pass": 0,
+  "ux_user_control": 5,
+  "ux_score": 3.9,
+  "ux_reasoning": "The agent handled control well: it only changed the cart after the user explicitly asked for the update, and it clearly summarized the new total afterward. The main UX flaw was effort: on the initial \"what is my total right now\" question, the agent did not verify current pricing via product lookup or proactively explain the price drop, so the user had to infer the issue and request the fix themselves. Responses were concise and readable, but the first answer was somewhat ambiguous because it reported the stale total while also noting a lower item price instead of directly resolving the discrepancy.",
+  "turns": 2,
+  "tool_calls": 3,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hi — I'm coming back to finish my checkout. Can you tell me what my cart total is right now?"
+    },
+    {
+      "role": "assistant",
+      "content": "Your cart currently shows a total of **$849**, with no discounts or shipping charges applied.\n\nHowever, your only listed item—the SlimBook Air 13—is priced at **$799**, leaving an unexplained **$50 difference**. That discrepancy should be resolved before you pay.",
+      "tool_calls": [
+        {
+          "name": "get_cart",
+          "arguments": {
+            "customer_id": "shop_004"
+          },
+          "result": {
+            "cart_id": "CART-shop_004",
+            "customer_id": "shop_004",
+            "items": [
+              {
+                "cart_item_id": "CI-A1",
+                "product_id": "SP-1001",
+                "product_name": "SlimBook Air 13",
+                "quantity": 1,
+                "gift_wrap": false,
+                "unit_price": 799,
+                "line_total": 799
+              }
+            ],
+            "subtotal": 849,
+            "discount_amount": 0,
+            "gift_wrap_fee": 0,
+            "loyalty_discount": 0,
+            "loyalty_points_redeemed": 0,
+            "shipping_option": null,
+            "shipping_cost": 0,
+            "total": 849,
+            "applied_promo_codes": []
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Oh, good catch — that sounds like the price dropped. Please update my cart so I’m actually charged the current price, not the old one."
+    },
+    {
+      "role": "assistant",
+      "content": "Updated—your cart total is now **$799**, reflecting the SlimBook Air 13’s current price. That’s **$50 less** than the previous total. No purchase has been made.",
+      "tool_calls": [
+        {
+          "name": "get_product_details",
+          "arguments": {
+            "product_id": "SP-1001"
+          },
+          "result": {
+            "product_id": "SP-1001",
+            "name": "SlimBook Air 13",
+            "category": "electronics",
+            "subcategory": "laptop",
+            "brand": "SlimBook",
+            "price": 799,
+            "rating": 4.5,
+            "review_count": 1240,
+            "description": "Lightweight 13-inch laptop built for students. All-day battery and durable chassis.",
+            "specs": {
+              "weight_lb": 2.6,
+              "battery_hours": 14,
+              "ram": "8GB",
+              "ssd": "256GB",
+              "screen_inches": 13
+            },
+            "compatible_with": [],
+            "in_stock": true,
+            "stock_quantity": 40,
+            "shipping_days": 3,
+            "gift_wrap_available": true,
+            "backorder_available": false,
+            "previous_price": 849,
+            "variants": null,
+            "shipping_estimate": "3 business days (standard)"
+          }
+        },
+        {
+          "name": "update_cart_item",
+          "arguments": {
+            "customer_id": "shop_004",
+            "product_id": "SP-1001",
+            "variant_id": "",
+            "quantity": 1,
+            "gift_wrap": false
+          },
+          "result": {
+            "status": "updated",
+            "cart_item_id": "CI-A1",
+            "product_id": "SP-1001",
+            "variant_id": null,
+            "product_name": "SlimBook Air 13",
+            "quantity": 1,
+            "gift_wrap": false,
+            "cart_subtotal": 799,
+            "cart_total": 799
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "70a546fce5108cb4381c6c6c6ea0adccd6e3d91b99b90a14f1c09d1b1f2bc5fc",
+  "agent_name": "StateBenchAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "token_usage": {
+    "input_tokens": 10866,
+    "cached_input_tokens": 8359,
+    "output_tokens": 225,
+    "reasoning_output_tokens": 32,
+    "total_tokens": 11091,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0
+  },
+  "input_tokens": 10866,
+  "cached_input_tokens": 8359,
+  "output_tokens": 225,
+  "reasoning_output_tokens": 32,
+  "total_tokens": 11091,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "carts": {
+        "CART-shop_004": {
+          "subtotal": {
+            "old": 849,
+            "new": 799
+          },
+          "total": {
+            "old": 849,
+            "new": 799
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "subtotal",
+      "expected_value": 799
+    },
+    {
+      "entity_type": "carts",
+      "record_key": "CART-shop_004",
+      "field": "total",
+      "expected_value": 799
+    },
+    {
+      "entity_type": "cart_items",
+      "match_fields": {
+        "customer_id": "shop_004",
+        "product_id": "SP-1001",
+        "gift_wrap": false,
+        "quantity": 1
+      },
+      "expected_fields": {}
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 2,
+  "ux_response_density": 4,
+  "ux_base_score": 3.9,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 3,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "558947b2ce0b5d90a633e7d44e8599c329a96ac5ed9e43c9d37ffb5e6cf3c055",
+    "judge_ux_quality.md": "0234643a8dcf766c390aff2dc11b2f74f0e13ef7a38b29df70165bd333b82656",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}

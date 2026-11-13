@@ -1,0 +1,410 @@
+{
+  "task_id": "110-spare_exchange_wrong_product_family",
+  "user_id": "cust_002",
+  "task_summary": "Customer asks to exchange headphones for a cheaper phone case. The exchange policy allows different-product exchanges and requires the price difference to be issued as store credit, so the agent should process the exchange without routing through a return/reorder workaround.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "spare_exchange_wrong_product_family_exchange",
+      "kind": "must",
+      "requirement": "Agent must confirm the headphones can be exchanged for the cheaper UltraShield Phone Case (the exchange policy allows exchanging for a different product) and must not claim the exchange is disallowed.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly confirmed the headphones could be exchanged for the cheaper in-stock UltraShield Phone Case: “Yes—your headphones are eligible to exchange for the in-stock UltraShield Phone Case,” and then completed the exchange."
+    },
+    {
+      "id": "spare_exchange_wrong_product_family_store_credit_difference",
+      "kind": "must",
+      "requirement": "Agent must explain that the cheaper-item price difference is issued as store credit, not original-payment cash.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The agent clearly explained the cheaper-item difference would be issued as store credit, not returned to the original payment method: “you’d receive the $214 difference as store credit, not back to your card,” which matches the exchange preview and finalization."
+    },
+    {
+      "id": "spare_exchange_wrong_product_family_no_return_workaround",
+      "kind": "must_not",
+      "requirement": "Agent must not route the customer into a return, refund, cancellation, or warranty workaround instead of the exchange.",
+      "evidence": "conversation_or_tool_calls",
+      "passed": true,
+      "reasoning": "The agent handled this as a direct exchange only, using exchange preview and exchange confirmation tools, and did not route the customer into a return, refund, cancellation, or warranty workaround."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 5.0,
+  "ux_reasoning": "The agent handled the exchange exactly as a user would want: it checked eligibility and inventory, previewed the replacement item and the $214 store-credit difference, and then waited for explicit confirmation before finalizing. It kept the user in control of the consequential action and clearly summarized the final state after the exchange completed. The flow was efficient with no unnecessary workaround into return/reorder and no need for the user to correct or re-steer. Responses were concise but complete, covering the item, amount, credit method, and no extra payment.",
+  "turns": 2,
+  "tool_calls": 7,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I bought headphones in ORD-7272 but really meant to get the phone case. Can you exchange them and explain how the price difference works?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—your headphones are eligible to exchange for the in-stock UltraShield Phone Case. You paid $249 for the headphones, and the case costs $35, so you’d receive the $214 difference as **store credit**, not back to your card, with nothing extra to pay.\n\nShall I finalize that exchange?",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "cust_002 ORD-7272 exchange headphones for phone case price difference exchange policy preview consent",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (35-exchange_cheaper):\nCustomer: I want to exchange my premium headphones from order ORD-6036 for the basic model. The premium ones are overkill for me.\n  [tool] get_order({\"order_id\": \"ORD-6036\"}) -> {\"order_id\": \"ORD-6036\", \"customer_id\": \"cust_004\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK05427699\", \"delivery_date\": \"2026-06-05T14:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] get_policies({\"topic\": \"exchange\"}) -> {\"topic\": \"exchange\", \"rules\": {\"must_be_different_product\": \"Exchanges must specify a different product than the original item. Self-swap (exchanging an item for the same product) is not allowed — use process_return for a refund instead.\", \"same_price\": \"Exchange for a same-price product: no charge...\n  [tool] search_products({\"query\": \"SoundMax basic headphones\"}) -> {\"query\": \"SoundMax basic headphones\", \"results\": [{\"product_id\": \"PROD-2261\", \"name\": \"SoundMax Basic Headphones\", \"matched_field\": \"name\", \"category\": \"electronics\", \"subcategory\": \"headphones_budget\", \"in_stock\": true}, {\"product_id\": \"PROD-2260\", \"name\": \"SoundMax Elite Wireless Headphones\", \"ma...\n  [tool] get_product_details({\"product_id\": \"PROD-2261\"}) -> {\"product_id\": \"PROD-2261\", \"name\": \"SoundMax Basic Headphones\", \"category\": \"electronics\", \"subcategory\": \"headphones_budget\", \"price\": 149, \"warranty_months\": 12, \"return_window_days\": 15, \"restocking_fee_pct\": 15, \"weight_lbs\": 0.5, \"is_fragile\": false, \"in_stock\": true, \"current_price\": null}\n  [tool] process_exchange({\"item_id\": \"ITEM-9260\", \"new_product_id\": \"PROD-2261\", \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-9260\", \"new_product_id\": \"PROD-2261\", \"price_difference\": -200, \"customer_pays\": 0, \"store_credit_refund\": 200, \"reason\": \"Exchange for cheaper item — $200 to store credit\"}\nAgent: I checked it, and you can exchange the SoundMax Elite headphones from order ORD-6036 for the SoundMax Basic Headphones. The basic model is in stock, and because it’s $200 cheaper, the exchange would give you $200 back as store credit. If you want, I can finalize that exchange now.\nCustomer: Thanks. Why is the $200 difference issued as store credit instead of going back to my original payment method?\nAgent: Because for exchanges to a lower-priced item, our policy issues the price difference as store credit rather than refunding it to the original payment method. In your case, swapping the premium headphones for the basic model counts as a cheaper-item exchange, so the $200 comes back as credit. If you want, I can also check whether a return plus a new purchase would better match what you want.\nCustomer: Got it. I was mainly trying to understand the policy. If this is a direct exchange for the Basic headphones and the $200 difference comes as store credit, that’s fine—as long as there isn’t any extra fee or workaround involved.\n\nIf that’s the case, please go ahead and finalize the exchange for order ORD-6036.\n  [tool] process_exchange({\"item_id\": \"ITEM-9260\", \"new_product_id\": \"PROD-2261\", \"confirm\": true}) -> {\"status\": \"exchanged\", \"item_id\": \"ITEM-9260\", \"new_item_id\": \"ITEM-9261\", \"new_product_id\": \"PROD-2261\", \"price_difference\": -200, \"customer_pays\": 0, \"store_credit_refund\": 200}\nAgent: Done — the exchange is finalized. There was no extra fee, and $200 has been issued to your store credit balance from the price difference.\nCustomer: Thanks — just to confirm, ORD-6036 was exchanged from the Elite headphones to the Basic model, and the $200 difference was issued as store credit with no extra fee, right? [TASK_DONE]",
+              "Past conversation (37-exchange_no_price_protection):\nCustomer: I want to exchange my headphones from order ORD-6038. I see they're now $199 — I paid $249. Can I get the difference back with the exchange?\n  [tool] get_order({\"order_id\": \"ORD-6038\"}) -> {\"order_id\": \"ORD-6038\", \"customer_id\": \"cust_002\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK18331692\", \"delivery_date\": \"2026-06-05T14:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] get_policies({\"topic\": \"exchange\"}) -> {\"topic\": \"exchange\", \"rules\": {\"must_be_different_product\": \"Exchanges must specify a different product than the original item. Self-swap (exchanging an item for the same product) is not allowed — use process_return for a refund instead.\", \"same_price\": \"Exchange for a same-price product: no charge...\n  [tool] get_policies({\"topic\": \"return\"}) -> {\"topic\": \"return\", \"rules\": {\"agent_computes_amount\": \"process_return requires the agent to submit the net refund as `amount` on confirm. Compute it from the preview's component breakdown: base_item_price (after promo redistribution) minus restocking_fee plus restocking_discount minus shipping_claw...\n  [tool] get_customer({\"customer_id\": \"cust_002\"}) -> {\"customer_id\": \"cust_002\", \"name\": \"Marcus Johnson\", \"email\": \"marcus.j@example.com\", \"membership_tier\": \"standard\", \"account_created\": \"2024-06-01\", \"total_orders\": 12, \"preferred_refund_method\": \"store_credit\", \"store_credit_balance\": 0, \"has_prime_shipping\": false, \"benefits\": {\"return_window_ex...\n  [tool] process_return({\"item_id\": \"ITEM-9270\", \"reason\": \"changed_mind\", \"amount\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-9270\", \"return_eligible\": true, \"reason\": \"changed_mind\", \"refund_amount\": 204, \"refund_method\": \"original_payment\", \"restocking_fee\": 37, \"discount_adjustment\": 0, \"free_return_shipping\": false, \"shipping_refund\": false, \"shipping_clawback\": 8, \"bulk_clawback\"...\nAgent: I checked, and no — you can’t get the $50 back through an exchange for this item. Exchanges have no price protection, and they also have to be for a different product, not the exact same headphones at the new lower price. If you exchange for a different cheaper item, the difference would come back as store credit, not back to your card. If you want, I can also help check your return option instead — right now that would estimate to $204 back to your original payment method.\nCustomer: Why wouldn’t the lower current price count if I’m exchanging the headphones anyway? I’m just trying to understand why that $50 can’t be credited through the exchange.\nAgent: Because an exchange is treated as a swap based on what you originally bought, not as a retroactive price adjustment. We don’t reprice the item you already purchased to today’s sale price, so exchanging the same headphones at $199 would basically be a price-protection request, and that isn’t offered. If you exchanged to a different, lower-priced product, the difference could be issued as store credit — but not as a $50 refund to your card for the same headphones.\nCustomer: Got it — so the exchange itself won’t apply the new $199 price, and the $50 difference wouldn’t be credited that way. I’ll think about the separate return-and-rebuy option, but I don’t want to start any return or exchange right now. [TASK_DONE]",
+              "Past conversation (111-hard_exchange_downgrade_cash_demand):\nCustomer: I want to exchange the Elite headphones in ORD-7213 for the basic model and get the difference back on my card.\n  [tool] get_order({\"order_id\": \"ORD-7213\"}) -> {\"order_id\": \"ORD-7213\", \"customer_id\": \"cust_004\", \"order_date\": \"2026-06-01T10:00:00\", \"status\": \"delivered\", \"shipping_status\": \"delivered\", \"shipping_method\": \"standard\", \"shipping_cost\": 0, \"tracking_number\": \"TRK15400513\", \"delivery_date\": \"2026-07-03T12:00:00\", \"delivery_promised_date\": \"2026...\n  [tool] search_products({\"query\": \"basic headphones\"}) -> {\"query\": \"basic headphones\", \"results\": [{\"product_id\": \"PROD-4216\", \"name\": \"SoundMax Basic Headphones\", \"matched_field\": \"name\", \"category\": \"electronics\", \"subcategory\": \"headphones_budget\", \"in_stock\": true}, {\"product_id\": \"PROD-4215\", \"name\": \"SoundMax Elite Wireless Headphones\", \"matched_fie...\n  [tool] get_product_details({\"product_id\": \"PROD-4216\"}) -> {\"product_id\": \"PROD-4216\", \"name\": \"SoundMax Basic Headphones\", \"category\": \"electronics\", \"subcategory\": \"headphones_budget\", \"price\": 149, \"warranty_months\": 12, \"return_window_days\": 15, \"restocking_fee_pct\": 15, \"weight_lbs\": 0.5, \"is_fragile\": false, \"in_stock\": true, \"current_price\": null}\n  [tool] get_policies({\"topic\": \"exchange\"}) -> {\"topic\": \"exchange\", \"rules\": {\"must_be_different_product\": \"Exchanges must specify a different product than the original item. Self-swap (exchanging an item for the same product) is not allowed — use process_return for a refund instead.\", \"same_price\": \"Exchange for a same-price product: no charge...\n  [tool] process_exchange({\"item_id\": \"ITEM-10213\", \"new_product_id\": \"PROD-4216\", \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-10213\", \"new_product_id\": \"PROD-4216\", \"price_difference\": -200, \"customer_pays\": 0, \"store_credit_refund\": 200, \"reason\": \"Exchange for cheaper item — $200 to store credit\"}\n  [tool] get_policies({\"topic\": \"return\"}) -> {\"topic\": \"return\", \"rules\": {\"agent_computes_amount\": \"process_return requires the agent to submit the net refund as `amount` on confirm. Compute it from the preview's component breakdown: base_item_price (after promo redistribution) minus restocking_fee plus restocking_discount minus shipping_claw...\n  [tool] get_customer({\"customer_id\": \"cust_004\"}) -> {\"customer_id\": \"cust_004\", \"name\": \"David Kim\", \"email\": \"david.kim@example.com\", \"membership_tier\": \"silver\", \"account_created\": \"2022-08-10\", \"total_orders\": 31, \"preferred_refund_method\": \"original_payment\", \"store_credit_balance\": 25, \"has_prime_shipping\": false, \"benefits\": {\"return_window_ext...\n  [tool] process_return({\"item_id\": \"ITEM-10213\", \"reason\": \"changed_mind\", \"amount\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"item_id\": \"ITEM-10213\", \"return_eligible\": true, \"reason\": \"changed_mind\", \"refund_amount\": 302, \"refund_method\": \"original_payment\", \"restocking_fee\": 52, \"discount_adjustment\": 0, \"free_return_shipping\": false, \"shipping_refund\": false, \"shipping_clawback\": 8, \"bulk_clawback...\nAgent: I checked, and I can exchange the Elite headphones for the basic model, but the $200 price difference can only be issued as store credit, not back to your card. If you want money returned to your card, the alternative is to return the Elite headphones and place a new order for the basic model; your net refund on the return would be $302 to your original payment method. If you want, I can proceed with either option.\nCustomer: I don’t want to do a return and reorder. Why can’t the $200 difference from the exchange go back to my card instead?\nAgent: Because on a lower-priced exchange, the difference is issued as store credit under the exchange policy, not sent back to the original card. Card refunds are only available through a return/refund flow, which is why the system won’t let me do the $200 back to your card as part of this exchange. If you’d like, I can still process the exchange and add the $200 to your store credit balance.\nCustomer: Okay, if that’s the policy, go ahead with the exchange to the SoundMax Basic Headphones and issue the $200 difference as store credit. Before you finalize it, can you just confirm that’s the replacement item and that the credit won’t go back to my card?\nAgent: Yes — the replacement item is the SoundMax Basic Headphones, and the exchange preview shows a $200 difference. That $200 will be issued as store credit only and will not go back to your card. If you want, send me a quick “confirm,” and I’ll finalize it.\nCustomer: Confirm. Please finalize the exchange to the SoundMax Basic Headphones, with the $200 difference issued as store credit and not back to my card.\n  [tool] process_exchange({\"item_id\": \"ITEM-10213\", \"new_product_id\": \"PROD-4216\", \"confirm\": true}) -> {\"status\": \"exchanged\", \"item_id\": \"ITEM-10213\", \"new_item_id\": \"ITEM-10214\", \"new_product_id\": \"PROD-4216\", \"price_difference\": -200, \"customer_pays\": 0, \"store_credit_refund\": 200}\nAgent: Done — the exchange is finalized for the SoundMax Basic Headphones. The $200 difference has been issued as store credit, not refunded to your card.\nCustomer: Thanks, that’s exactly what I needed — exchanged to the SoundMax Basic Headphones, and the $200 difference as store credit, not back to my card. [TASK_DONE]"
+            ]
+          }
+        },
+        {
+          "name": "get_order",
+          "arguments": {
+            "order_id": "ORD-7272"
+          },
+          "result": {
+            "order_id": "ORD-7272",
+            "customer_id": "cust_002",
+            "order_date": "2026-06-01T10:00:00",
+            "status": "delivered",
+            "shipping_status": "delivered",
+            "shipping_method": "standard",
+            "shipping_cost": 0,
+            "tracking_number": "TRK86211773",
+            "delivery_date": "2026-07-03T12:00:00",
+            "delivery_promised_date": "2026-06-05T18:00:00",
+            "signature_required": false,
+            "signature_on_file": null,
+            "payment_method": "credit_card",
+            "payment_details": {
+              "credit_card": 249
+            },
+            "subtotal": 249,
+            "discount_code": null,
+            "discount_amount": 0,
+            "total_paid": 249,
+            "is_gift": false,
+            "gift_sender": null,
+            "items": [
+              {
+                "item_id": "ITEM-10274",
+                "order_id": "ORD-7272",
+                "product_id": "PROD-4283",
+                "quantity": 1,
+                "unit_price": 249,
+                "item_status": "delivered",
+                "return_reason": null,
+                "refund_amount": null,
+                "refund_method": null,
+                "restocking_fee": null,
+                "return_label_issued": false,
+                "replacement_item_id": null,
+                "goodwill_credit": 0,
+                "goodwill_credit_method": null,
+                "store_credit_only": false,
+                "product": {
+                  "product_id": "PROD-4283",
+                  "name": "SoundMax Wireless Headphones",
+                  "category": "electronics",
+                  "price": 249,
+                  "current_price": null,
+                  "return_window_days": 15,
+                  "warranty_months": 12,
+                  "in_stock": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "exchange"
+          },
+          "result": {
+            "topic": "exchange",
+            "rules": {
+              "must_be_different_product": "Exchanges must specify a different product than the original item. Self-swap (exchanging an item for the same product) is not allowed — use process_return for a refund instead.",
+              "same_price": "Exchange for a same-price product: no charge, no refund.",
+              "more_expensive": "Exchange for more expensive item: customer pays price difference.",
+              "cheaper": "Exchange for cheaper item: difference refunded as store credit (not original payment).",
+              "out_of_stock": "If requested item is out of stock: issue store credit for the original item; do not complete the exchange.",
+              "return_window": "Must be within return window (same rules as returns).",
+              "no_price_protection": "No price protection on exchanges (item price at time of purchase applies)."
+            }
+          }
+        },
+        {
+          "name": "search_products",
+          "arguments": {
+            "query": "phone case"
+          },
+          "result": {
+            "query": "phone case",
+            "results": [
+              {
+                "product_id": "PROD-4284",
+                "name": "UltraShield Phone Case",
+                "matched_field": "name",
+                "category": "accessories",
+                "subcategory": "phone_case",
+                "in_stock": true
+              },
+              {
+                "product_id": "PROD-4283",
+                "name": "SoundMax Wireless Headphones",
+                "matched_field": "name",
+                "category": "electronics",
+                "subcategory": "headphones",
+                "in_stock": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_product_details",
+          "arguments": {
+            "product_id": "PROD-4284"
+          },
+          "result": {
+            "product_id": "PROD-4284",
+            "name": "UltraShield Phone Case",
+            "category": "accessories",
+            "subcategory": "phone_case",
+            "price": 35,
+            "warranty_months": 3,
+            "return_window_days": 30,
+            "restocking_fee_pct": 0,
+            "weight_lbs": 0.2,
+            "is_fragile": false,
+            "in_stock": true,
+            "current_price": null
+          }
+        },
+        {
+          "name": "process_exchange",
+          "arguments": {
+            "item_id": "ITEM-10274",
+            "new_product_id": "PROD-4284"
+          },
+          "result": {
+            "status": "preview",
+            "item_id": "ITEM-10274",
+            "new_product_id": "PROD-4284",
+            "price_difference": -214,
+            "customer_pays": 0,
+            "store_credit_refund": 214,
+            "reason": "Exchange for cheaper item — $214 to store credit"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Yes, that’s what I wanted—please finalize the exchange to the UltraShield Phone Case with the $214 difference as store credit."
+    },
+    {
+      "role": "assistant",
+      "content": "Done—the exchange to the UltraShield Phone Case is finalized for ORD-7272. The $214 difference has been issued as store credit, with nothing extra to pay.",
+      "tool_calls": [
+        {
+          "name": "process_exchange",
+          "arguments": {
+            "item_id": "ITEM-10274",
+            "new_product_id": "PROD-4284",
+            "confirm": true
+          },
+          "result": {
+            "status": "exchanged",
+            "item_id": "ITEM-10274",
+            "new_item_id": "ITEM-10275",
+            "new_product_id": "PROD-4284",
+            "price_difference": -214,
+            "customer_pays": 0,
+            "store_credit_refund": 214
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "0b58e108ac16469926ee210774e6e3275049d898d35ea23ef40c13ddfbe829d8",
+  "agent_name": "OpenCodeTrainAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": false,
+    "gatherer": null,
+    "ag_seed": null,
+    "training_lookup": true,
+    "session": "ses_e32a16e77ffePOi74AbffJZwz3",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 2,
+    "model_calls": 7
+  },
+  "token_usage": {
+    "input_tokens": 37347,
+    "cached_input_tokens": 30994,
+    "output_tokens": 322,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 37669,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0221914,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0221914
+  },
+  "input_tokens": 37347,
+  "cached_input_tokens": 30994,
+  "output_tokens": 322,
+  "reasoning_output_tokens": 0,
+  "total_tokens": 37669,
+  "cost_usd": 0.0221914,
+  "state_diff": {
+    "created": {
+      "order_items": {
+        "ITEM-10275": {
+          "item_id": "ITEM-10275",
+          "order_id": "ORD-7272",
+          "product_id": "PROD-4284",
+          "quantity": 1,
+          "unit_price": 35,
+          "item_status": "confirmed",
+          "return_reason": null,
+          "refund_amount": null,
+          "refund_method": null,
+          "restocking_fee": null,
+          "return_label_issued": false,
+          "replacement_item_id": null,
+          "goodwill_credit": 0,
+          "goodwill_credit_method": null,
+          "store_credit_only": false
+        }
+      }
+    },
+    "modified": {
+      "order_items": {
+        "ITEM-10274": {
+          "refund_method": {
+            "old": null,
+            "new": "store_credit"
+          },
+          "replacement_item_id": {
+            "old": null,
+            "new": "ITEM-10275"
+          },
+          "item_status": {
+            "old": "delivered",
+            "new": "exchanged"
+          },
+          "refund_amount": {
+            "old": null,
+            "new": 214
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10274",
+      "field": "item_status",
+      "expected_value": "exchanged"
+    },
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10274",
+      "field": "refund_amount",
+      "expected_value": 214
+    },
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10274",
+      "field": "refund_method",
+      "expected_value": "store_credit"
+    },
+    {
+      "entity_type": "order_items",
+      "record_key": "ITEM-10274",
+      "field": "replacement_item_id",
+      "expected_value_from_match": {
+        "entity_type": "order_items",
+        "match_fields": {
+          "order_id": "ORD-7272",
+          "product_id": "PROD-4284",
+          "quantity": 1,
+          "unit_price": 35,
+          "item_status": "confirmed"
+        }
+      }
+    },
+    {
+      "entity_type": "order_items",
+      "match_fields": {
+        "order_id": "ORD-7272",
+        "product_id": "PROD-4284",
+        "quantity": 1,
+        "unit_price": 35,
+        "item_status": "confirmed"
+      },
+      "expected_fields": {
+        "goodwill_credit": 0,
+        "goodwill_credit_method": null,
+        "item_status": "confirmed",
+        "order_id": "ORD-7272",
+        "product_id": "PROD-4284",
+        "quantity": 1,
+        "refund_amount": null,
+        "refund_method": null,
+        "replacement_item_id": null,
+        "restocking_fee": null,
+        "return_label_issued": false,
+        "return_reason": null,
+        "store_credit_only": false,
+        "unit_price": 35
+      }
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 2,
+  "ux_tool_call_count": 7,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "246c76f59f3cd0e736da35b9beb985088778ff233287454b8bae674285718c72",
+    "judge_ux_quality.md": "8b6ecae22872ab860d4a54f37e5bd4a6a160033b833cd1b0de6a3673640d7067",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  }
+}
