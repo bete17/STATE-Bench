@@ -260,6 +260,7 @@ class OpenCodeAgent(StateBenchAgent):
 
     use_ag = False
     ag_seed = False     # start the task's gatherer from the domain's seeded training gatherer
+    ag_seed_variant = ""    # which prepared copy of it: "" (ag's defaults) or "small" (a ~64% smaller pack)
 
     # Named parameters: run_task passes agent_reasoning_effort only to a constructor that names it.
     def __init__(
@@ -340,8 +341,7 @@ class OpenCodeAgent(StateBenchAgent):
 
         serve = ["serve", "--hostname", "127.0.0.1", "--port", "0"]
         if self.use_ag:
-            if self.ag_seed:
-                copy_gatherer(seed_gatherer_name(self.runtime_context.domain), self.gatherer)
+            self._prepare_gatherer()
             env["AG_PYTHON"] = sys.executable
             cmd = [sys.executable, "-m", "ag.cli", "--gatherer", self.gatherer, "opencode", *serve]
         else:
@@ -370,6 +370,11 @@ class OpenCodeAgent(StateBenchAgent):
             raise RuntimeError(f"opencode did not start within {START_TIMEOUT_S}s:\n{text[-2000:]}")
 
         self.session_id = _http("POST", f"{self.url}/session", {"title": "statebench"})["id"]
+
+    def _prepare_gatherer(self) -> None:
+        """Make the task's gatherer before ag starts on it: a copy of the domain's prepared one, if seeded."""
+        if self.ag_seed:
+            copy_gatherer(seed_gatherer_name(self.runtime_context.domain, self.ag_seed_variant), self.gatherer)
 
     # ---- one turn
 
@@ -450,7 +455,7 @@ class OpenCodeAgent(StateBenchAgent):
         trajectory.metadata["opencode"] = {
             "ag": self.use_ag,
             "gatherer": self.gatherer,
-            "ag_seed": seed_gatherer_name(self.runtime_context.domain) if self.ag_seed else None,
+            "ag_seed": seed_gatherer_name(self.runtime_context.domain, self.ag_seed_variant) if self.ag_seed else None,
             "training_lookup": self.retrieval_enabled,
             "session": self.session_id,
             "model": self.model,
@@ -565,8 +570,9 @@ def training_index(domain: str) -> _TrainingIndex:
         return _indexes[domain]
 
 
-def seed_gatherer_name(domain: str) -> str:
-    return f"statebench-train-{domain}"
+def seed_gatherer_name(domain: str, variant: str = "") -> str:
+    """The prepared training gatherer of a domain; a variant (such as "small") is a copy with other settings."""
+    return f"statebench-train-{domain}" + (f"-{variant}" if variant else "")
 
 
 def copy_gatherer(source: str, target: str) -> None:
@@ -601,3 +607,96 @@ class OpenCodeAgTrainAgent(_TrainingLookup, OpenCodeAgAgent):
     """The same, through ag, with each task's gatherer starting as a copy of the domain's seeded one."""
 
     ag_seed = True
+
+
+class OpenCodeAgTrainSmallAgent(OpenCodeAgTrainAgent):
+    """OpenCodeAgTrainAgent with a ~64% smaller pack: every ag section budget at 20% of its default
+    (seed statebench-train-<domain>-small, made by tools/prebuild_ag_training.py --small)."""
+
+    ag_seed_variant = "small"
+
+
+# --------------------------------------------------------------------------- one shared gatherer per domain
+#
+# OpenCodeAgSharedSmallAgent lets later test tasks learn from earlier ones. The run's tasks of a domain
+# share ONE gatherer, made from the small seed when the run's first task starts, and run one at a time.
+# Each task is a new session (channel) in it, so it joins from the training conversations AND the test
+# conversations before it. ag does not split a short customer chat into tasks on its own, so when a
+# task ends its conversation is processed here (split into tasks and summarised, as a build does mid-
+# conversation): only then can the next tasks' joins rank it in.
+
+_SHARED_RUN = time.strftime("%Y%m%d-%H%M%S")      # one run_batch process (one domain) is one run
+
+
+def shared_gatherer_name(domain: str) -> str:
+    return f"statebench-shared-{domain}-{_SHARED_RUN}"
+
+
+def process_finished(gatherer: str, channel: str) -> dict[str, Any]:
+    """Split a finished conversation (channel) into tasks and summarise them, so other channels of the
+    gatherer can rank them in. Ranking this channel's own context is skipped: nothing reads it again."""
+    from dataclasses import replace
+
+    from ag.ag_harness.home import home
+    from ag.ag_policies.proactive_context_manager import tables
+
+    manager = home().manager(gatherer)
+    manager.init(gatherer)
+    policy = manager.policy
+    policy.config = replace(policy.config, parallel_related_tasks=False)
+    conn = policy.gatherers.open(gatherer)
+    try:
+        build_id = tables.claim_build(conn, channel, 3600, tables.ASKED)
+    finally:
+        conn.close()
+    if build_id is None:
+        return {"status": "busy"}
+    started = time.monotonic()
+    policy.build(gatherer, {"channel": channel}, build_id)
+    conn = policy.gatherers.open(gatherer)
+    try:
+        build = tables.get_build(conn, build_id) or {}
+        tasks = len(tables.load_tasks(conn, channel))
+    finally:
+        conn.close()
+    # "nothing" with tasks > 0: a one-task conversation, saved (name, description, turns) without a summary
+    return {"status": build.get("status"), "note": build.get("error"), "tasks": tasks,
+            "seconds": round(time.monotonic() - started, 1)}
+
+
+def _workers_arg() -> str | None:
+    argv = sys.argv
+    for i, a in enumerate(argv):
+        if a == "--num-workers" and i + 1 < len(argv):
+            return argv[i + 1]
+        if a.startswith("--num-workers="):
+            return a.split("=", 1)[1]
+    return None
+
+
+class OpenCodeAgSharedSmallAgent(OpenCodeAgTrainSmallAgent):
+    """OpenCodeAgTrainSmallAgent with one gatherer per domain for the whole run, shared by its tasks one
+    after another; run with --num-workers 1, the tasks in the order given."""
+
+    def _prepare_gatherer(self) -> None:
+        if _workers_arg() != "1":
+            raise RuntimeError("OpenCodeAgSharedSmallAgent runs a domain's tasks one at a time: pass --num-workers 1")
+        from ag.ag_harness.store.paths import gatherer_dir
+
+        domain = self.runtime_context.domain
+        self.gatherer = shared_gatherer_name(domain)
+        if not (Path(gatherer_dir(self.gatherer)) / "context.db").is_file():
+            copy_gatherer(seed_gatherer_name(domain, self.ag_seed_variant), self.gatherer)
+
+    def ingest_trajectory(self, trajectory) -> None:
+        self.close()                     # ag and OpenCode stopped: the conversation is complete
+        processed: dict[str, Any] | None = None
+        if self.gatherer and self.session_id:
+            try:
+                processed = process_finished(self.gatherer, self.session_id)
+            except Exception as exc:      # the task's own result stands; later tasks just cannot use it
+                logger.warning("could not process %s in %s: %s", self.session_id, self.gatherer, exc)
+                processed = {"status": "error", "note": str(exc)[:500]}
+        super().ingest_trajectory(trajectory)
+        trajectory.metadata["opencode"]["shared"] = True
+        trajectory.metadata["opencode"]["processed"] = processed
