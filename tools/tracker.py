@@ -144,7 +144,9 @@ def _metrics(rows: list[dict], expected_tasks: int, num_runs: int) -> dict:
         ),
         "pass_all_tasks": len(complete),
         "mean_ux": sum(ux) / len(ux) if ux else None,
+        "ux_count": len(ux),          # with cost_count: lets the page combine several folders exactly
         "total_cost": sum(costs) if costs else None,
+        "cost_count": len(costs),
         "cost_per_traj": sum(costs) / len(costs) if costs else None,
         "eval_cost": sum(eval_costs) if eval_costs else None,
         "eval_cost_runs": len(eval_costs),
@@ -219,11 +221,22 @@ def build_summary(root: Path, split: str, num_runs_arg: int | None) -> dict:
     activity = sorted(all_rows, key=lambda r: r["mtime"], reverse=True)[:25]
     return {
         "root": str(root),
+        "run_labels": _run_labels(root),
         "generated_at": time.time(),
         "overall": overall,
         "domains": domains,
         "activity": activity,
     }
+
+
+def _run_labels(root: Path) -> dict:
+    """Optional names and order for the run folders: runs.json in the outputs folder,
+    {"<run folder>": "<label>", ...}, in the order to list them."""
+    try:
+        labels = json.loads((root / "runs.json").read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return {}
+    return {str(k): str(v) for k, v in labels.items()} if isinstance(labels, dict) else {}
 
 
 def make_handler(root: Path, split: str, num_runs: int | None):

@@ -28,6 +28,16 @@ header h1 { font-size: 16px; margin: 0; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pass); }
 .dot.off { background: var(--muted); }
 main { padding: 16px 20px 40px; max-width: 1400px; margin: 0 auto; }
+.picker { position: relative; max-width: 440px; margin-bottom: 14px; }
+.picker input { width: 100%; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 34px 7px 12px; cursor: pointer; }
+.picker input:focus { outline: 2px solid var(--accent); outline-offset: -1px; cursor: text; }
+.picker::after { content: "▾"; position: absolute; right: 12px; top: 8px; color: var(--muted); pointer-events: none; }
+.picker ul { position: absolute; z-index: 6; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, .15); max-height: 340px; overflow-y: auto; }
+.picker li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+.picker li.active { background: var(--empty); }
+.picker li.on span:first-child { font-weight: 650; color: var(--accent); }
+.picker li.none { cursor: default; }
+.picker li .folder { color: var(--muted); font-size: 12px; margin-left: 6px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .tab { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 6px 12px; border-radius: 999px; cursor: pointer; font: inherit; }
 .tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -121,7 +131,11 @@ pre { margin: 0; padding: 8px 10px; background: var(--code); font-size: 12px; ov
     <label><input type="checkbox" id="auto" checked> auto-refresh</label></div>
 </header>
 <main>
-  <div class="tabs" id="tabs"></div>
+  <div class="picker">
+    <input id="dsearch" type="text" role="combobox" aria-label="Run" aria-expanded="false" aria-controls="dlist" aria-autocomplete="list" autocomplete="off" spellcheck="false">
+    <ul id="dlist" role="listbox" aria-label="Runs" hidden></ul>
+  </div>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Domain"></div>
   <div class="kpis" id="kpis"></div>
   <div class="grid">
     <div class="panel">
@@ -161,8 +175,9 @@ const ago = (t) => { const s = Math.max(0, Date.now() / 1000 - t); return s < 60
 const LABEL = { pass: "Pass", fail: "Fail", judging: "Judging", error: "Error" };
 const GLYPH = { pass: "✓", fail: "✗", judging: "…", error: "!" };
 
-let data = null, view = "__all__", lastOk = 0;
-try { view = localStorage.getItem("sbt-view") || view; } catch (e) {}
+// What is shown: a run (the search box) and a domain (the tabs). A results folder is <run>/<domain>.
+let data = null, run = "__all__", dom = "__all__", lastOk = 0;
+try { run = localStorage.getItem("sbt-run") || run; dom = localStorage.getItem("sbt-dom") || dom; } catch (e) {}
 
 async function refresh() {
   try {
@@ -173,22 +188,109 @@ async function refresh() {
   } catch (e) { $("dot").classList.add("off"); $("updated").textContent = "can't reach tracker server"; }
 }
 
+const runOf = (name) => (name.includes("/") ? name.slice(0, name.lastIndexOf("/")) : "");
+const domOf = (name) => name.slice(name.lastIndexOf("/") + 1);
+const inRun = (d, r) => r === "__all__" || runOf(d.name) === r;
+
+// Several folders' metrics as one: sums, and averages weighted by what each was taken over.
+function combine(ds) {
+  const ms = ds.map((d) => d.metrics), sum = (k) => ms.reduce((a, m) => a + (m[k] || 0), 0);
+  const avg = (k, n) => { const t = sum(n); return t ? ms.reduce((a, m) => a + (m[k] || 0) * (m[n] || 0), 0) / t : null; };
+  const cost = sum("total_cost"), costN = sum("cost_count"), evalCost = sum("eval_cost"), evalN = sum("eval_cost_runs");
+  return {
+    finished: sum("finished"), expected: sum("expected"), scored: sum("scored"), judging: sum("judging"), errors: sum("errors"),
+    pass_at_1: avg("pass_at_1", "scored"), pass_all: avg("pass_all", "pass_all_tasks"), pass_all_tasks: sum("pass_all_tasks"),
+    mean_ux: avg("mean_ux", "ux_count"), ux_count: sum("ux_count"),
+    total_cost: costN ? cost : null, cost_count: costN, cost_per_traj: costN ? cost / costN : null,
+    eval_cost: evalN ? evalCost : null, eval_cost_runs: evalN, eval_cost_per_traj: evalN ? evalCost / evalN : null,
+  };
+}
+
 function current() {
   if (!data) return null;
-  if (view !== "__all__") { const d = data.domains.find((d) => d.name === view); if (d) return { metrics: d.metrics, domains: [d] }; view = "__all__"; }
-  return { metrics: data.overall, domains: data.domains };
+  if (run !== "__all__" && !data.domains.some((d) => inRun(d, run))) run = "__all__";
+  if (dom !== "__all__" && !data.domains.some((d) => inRun(d, run) && domOf(d.name) === dom)) dom = "__all__";
+  if (run === "__all__" && dom === "__all__") return { metrics: data.overall, domains: data.domains };
+  const ds = data.domains.filter((d) => inRun(d, run) && (dom === "__all__" || domOf(d.name) === dom));
+  return { metrics: ds.length === 1 ? ds[0].metrics : combine(ds), domains: ds };
 }
 
 function render() {
   $("root").textContent = data.root;
   $("dot").classList.remove("off");
   $("updated").textContent = "updated " + new Date(lastOk).toLocaleTimeString();
-  const tabs = [["__all__", "All domains"], ...data.domains.map((d) => [d.name, d.name])];
-  $("tabs").innerHTML = tabs.map(([k, l]) => `<button class="tab ${k === view ? "on" : ""}" data-k="${esc(k)}">${esc(l)}</button>`).join("");
   const cur = current();
+  renderPicker();
+  renderTabs();
   renderKpis(cur.metrics, cur.domains);
   renderTable(cur.domains);
-  renderFeed();
+  renderFeed(cur.domains);
+}
+
+// ---- run picker: a search box that lists the runs (with their pass@1 and progress) when opened.
+// runs.json in the outputs folder can name the runs and set their order; else their folder names, A-Z.
+let pickActive = 0;
+const runLabel = (r) => (r === "__all__" ? "All runs" : (data && data.run_labels[r]) || r || "(this folder)");
+
+function pickerOptions() {
+  const runs = [...new Set(data.domains.map((d) => runOf(d.name)))];
+  const order = Object.keys(data.run_labels || {});
+  const rank = (r) => (order.includes(r) ? order.indexOf(r) : order.length);
+  runs.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  return [["__all__", data.overall], ...runs.map((r) => [r, combine(data.domains.filter((d) => runOf(d.name) === r))])];
+}
+
+function renderPicker() {
+  const input = $("dsearch");
+  if (document.activeElement !== input) input.value = runLabel(run);
+  if (!$("dlist").hidden) fillPicker();
+}
+
+function fillPicker() {
+  if (!data) return;
+  const input = $("dsearch");
+  const q = input.dataset.typed ? input.value.trim().toLowerCase() : "";
+  const opts = pickerOptions().filter(([r]) => !q || (runLabel(r) + " " + r).toLowerCase().includes(q));
+  pickActive = Math.max(0, Math.min(pickActive, opts.length - 1));
+  $("dlist").innerHTML = opts.length
+    ? opts.map(([r, m], i) => {
+        const named = r !== "__all__" && data.run_labels[r];
+        return `<li role="option" id="dopt${i}" data-k="${esc(r)}" class="${r === run ? "on" : ""} ${i === pickActive ? "active" : ""}" aria-selected="${r === run}"><span>${esc(runLabel(r))}${named ? `<span class="folder">${esc(r)}</span>` : ""}</span><span class="muted small">${pct(m.pass_at_1)} · ${m.finished}/${m.expected || "?"}</span></li>`;
+      }).join("")
+    : `<li class="none muted">No run matches</li>`;
+  input.setAttribute("aria-activedescendant", opts.length ? `dopt${pickActive}` : "");
+  const active = $("dlist").querySelector(".active");
+  if (active) active.scrollIntoView({ block: "nearest" });
+}
+
+function openPicker() {
+  $("dlist").hidden = false;
+  $("dsearch").setAttribute("aria-expanded", "true");
+  fillPicker();
+}
+
+function closePicker() {
+  const input = $("dsearch");
+  $("dlist").hidden = true;
+  input.setAttribute("aria-expanded", "false");
+  input.removeAttribute("aria-activedescendant");
+  delete input.dataset.typed;
+  input.value = runLabel(run);
+}
+
+function choose(r) {
+  run = r;
+  try { localStorage.setItem("sbt-run", run); } catch (err) {}
+  closePicker();
+  $("dsearch").blur();
+  render();
+}
+
+// ---- domain tabs: the domains of the chosen run (of every run, for All runs)
+function renderTabs() {
+  const doms = [...new Set(data.domains.filter((d) => inRun(d, run)).map((d) => domOf(d.name)))].sort();
+  const tabs = [["__all__", "All domains"], ...doms.map((x) => [x, x])];
+  $("tabs").innerHTML = tabs.map(([k, l]) => `<button class="tab ${k === dom ? "on" : ""}" role="tab" aria-selected="${k === dom}" data-k="${esc(k)}">${esc(l)}</button>`).join("");
 }
 
 function renderKpis(m, domains) {
@@ -254,8 +356,9 @@ function renderTable(domains) {
   $("tbody").innerHTML = rows.length ? rows.join("") : `<tr><td colspan="6"><div class="empty">${total ? "No tasks match this filter." : "No runs found yet. Start run_batch with --output-dir pointing at this folder."}</div></td></tr>`;
 }
 
-function renderFeed() {
-  const items = data.activity.filter((r) => view === "__all__" || r.domain === view);
+function renderFeed(domains) {
+  const shown = new Set(domains.map((d) => d.name));
+  const items = data.activity.filter((r) => shown.has(r.domain));
   $("feed").innerHTML = items.length ? items.map((r) => `
     <div class="item" data-path="${esc(r.path)}">
       <div class="top"><span class="chip ${r.status}">${LABEL[r.status]}</span><span class="tid">${esc(r.task_id)}</span><span class="when">run ${r.run} · ${ago(r.mtime)}</span></div>
@@ -334,12 +437,39 @@ function closeDetail() { document.body.classList.remove("open"); }
 
 document.addEventListener("click", (e) => {
   const tab = e.target.closest(".tab");
-  if (tab) { view = tab.dataset.k; try { localStorage.setItem("sbt-view", view); } catch (err) {} render(); return; }
+  if (tab) { dom = tab.dataset.k; try { localStorage.setItem("sbt-dom", dom); } catch (err) {} render(); return; }
   if (e.target.id === "x" || e.target.id === "scrim") { closeDetail(); return; }
   const p = e.target.closest("[data-path]");
   if (p) openDetail(p.dataset.path);
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
+$("dsearch").addEventListener("focus", () => {
+  if (!data) return;
+  $("dsearch").select();
+  pickActive = Math.max(0, pickerOptions().findIndex(([r]) => r === run));
+  openPicker();
+});
+$("dsearch").addEventListener("click", () => { if ($("dlist").hidden && data) openPicker(); });
+$("dsearch").addEventListener("input", () => { $("dsearch").dataset.typed = "1"; pickActive = 0; openPicker(); });
+$("dsearch").addEventListener("blur", closePicker);
+$("dsearch").addEventListener("keydown", (e) => {
+  const items = [...$("dlist").querySelectorAll("li[data-k]")];
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    if ($("dlist").hidden) { openPicker(); return; }
+    pickActive = (pickActive + (e.key === "ArrowDown" ? 1 : -1) + items.length) % Math.max(1, items.length);
+    fillPicker();
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (items[pickActive]) choose(items[pickActive].dataset.k);
+  } else if (e.key === "Escape") {
+    e.stopPropagation();
+    closePicker();
+    $("dsearch").blur();
+  }
+});
+$("dlist").addEventListener("mousedown", (e) => e.preventDefault());   // keep the box focused while picking
+$("dlist").addEventListener("click", (e) => { const li = e.target.closest("li[data-k]"); if (li) choose(li.dataset.k); });
 $("q").addEventListener("input", () => data && render());
 $("filter").addEventListener("change", () => data && render());
 setInterval(() => { if ($("auto").checked) refresh(); }, 4000);
