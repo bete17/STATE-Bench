@@ -5,6 +5,7 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -14,6 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from state_bench import eval_usage
 from state_bench.agents.base import BaseAgent
 from state_bench.agents.loader import load_root_agent_class, load_root_client_class
 from state_bench.agents.state_bench import StateBenchAgent
@@ -112,6 +114,8 @@ def _run_single(
         return {"task_id": task.task_id, "status": "ERR", "error": "no user_id"}
 
     last_error = None
+    # Evaluation-model tokens (simulated user, judges) for this task, over every attempt: all are billed.
+    eval_tokens: dict[str, dict[str, int]] = {}
     for attempt in range(1, max_attempts + 1):
         try:
             env_data, _env_path = load_task_environment(domain, task)
@@ -123,40 +127,50 @@ def _run_single(
                 if agent_model is not None:
                     metadata["agent_model"] = agent_model
 
-            traj = run_task(
-                task,
-                env_data,
-                user_id,
-                client,
-                domain=domain,
-                agent=None,
-                env=None,
-                trajectory_metadata=metadata,
-                simulator_client=simulator_client,
-                agent_class=agent_class,
-                retrieve_learnings_top_k=retrieve_learnings_top_k,
-                agent_reasoning_effort=agent_reasoning_effort,
-            )
+            with eval_usage.tracking("simulator", eval_tokens):
+                traj = run_task(
+                    task,
+                    env_data,
+                    user_id,
+                    client,
+                    domain=domain,
+                    agent=None,
+                    env=None,
+                    trajectory_metadata=metadata,
+                    simulator_client=simulator_client,
+                    agent_class=agent_class,
+                    retrieve_learnings_top_k=retrieve_learnings_top_k,
+                    agent_reasoning_effort=agent_reasoning_effort,
+                )
 
             out_path = output_dir / f"{task.task_id}.json"
             traj.save(out_path)
 
             result = {"task_id": task.task_id, "status": "OK"}
             if task_requirements_judge is not None or ux_judge is not None:
-                score_result = score_one(
-                    out_path,
-                    domain_tasks_dir(domain.name),
-                    task_requirements_judge,
-                    ux_judge,
-                    out_path,
-                    protocol,
-                    domain.name,
-                )
+                with eval_usage.tracking("judge", eval_tokens):
+                    score_result = score_one(
+                        out_path,
+                        domain_tasks_dir(domain.name),
+                        task_requirements_judge,
+                        ux_judge,
+                        out_path,
+                        protocol,
+                        domain.name,
+                    )
                 result["scoring_status"] = score_result.get("status")
                 if score_result.get("status") == "ERR":
                     result["scoring_error"] = score_result.get("error", "unknown scoring error")
                 if "ux_score" in score_result:
                     result["ux_score"] = score_result["ux_score"]
+
+            # Local addition: the evaluation model's tokens and cost, kept with the scored trajectory.
+            usage = eval_usage.summary(eval_tokens)
+            saved = json.loads(out_path.read_text())
+            saved["eval_usage"] = usage
+            out_path.write_text(json.dumps(saved, indent=2, ensure_ascii=False) + "\n")
+            if "cost_usd" in usage["total"]:
+                result["eval_cost_usd"] = usage["total"]["cost_usd"]
 
             if traj.token_usage is not None:
                 result["token_usage"] = traj.token_usage.to_dict()

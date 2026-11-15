@@ -203,6 +203,8 @@ function renderKpis(m, domains) {
     { label: "Mean UX score", value: num(m.mean_ux), sub: "judge, 1–5 scale" },
     { label: "Mean UX, tasks shown", value: "—", sub: "", id: "uxshown" },
     { label: "Agent cost", value: money(m.total_cost), sub: `${money(m.cost_per_traj)} per run` },
+    { label: "Customer + judge cost", value: money(m.eval_cost),
+      sub: m.eval_cost_runs ? `${money(m.eval_cost_per_traj)} per run · ${m.eval_cost_runs} of ${m.scored} runs recorded` : "not recorded for these runs" },
   ];
   $("kpis").innerHTML = tiles.map((t) => `<div class="kpi"><div class="label">${esc(t.label)}</div><div class="value"${t.id ? ` id="${t.id}"` : ""}>${t.value}</div><div class="sub"${t.id ? ` id="${t.id}-sub"` : ""}>${esc(t.sub)}</div>${t.bar ? `<div class="bar">${t.bar}</div>` : ""}</div>`).join("");
 }
@@ -273,7 +275,7 @@ async function openDetail(path) {
   const am = t.agent_model || {};
   $("dhead").innerHTML = `<div class="row"><span class="chip ${status}">${LABEL[status]}</span><b class="tid">${esc(t.task_id)}</b><button class="close" id="x">Close</button></div>
     ${t.task_summary ? `<div class="small muted" style="margin-top:6px">${esc(t.task_summary)}</div>` : ""}
-    <div class="row small muted" style="margin-top:6px">${[am.model_name && `model ${am.model_name}${am.reasoning_level ? " (" + am.reasoning_level + ")" : ""}`, t.turns != null && `${t.turns} turns`, t.tool_calls != null && `${t.tool_calls} tool calls`, t.tool_errors ? `${t.tool_errors} tool errors` : "", t.redundant_calls ? `${t.redundant_calls} repeated calls` : "", t.total_tokens && `${t.total_tokens.toLocaleString()} tokens`, t.reasoning_output_tokens && `${t.reasoning_output_tokens.toLocaleString()} reasoning tokens`, t.cost_usd && money(t.cost_usd)].filter(Boolean).map(esc).join(" · ")}</div>`;
+    <div class="row small muted" style="margin-top:6px">${[am.model_name && `model ${am.model_name}${am.reasoning_level ? " (" + am.reasoning_level + ")" : ""}`, t.turns != null && `${t.turns} turns`, t.tool_calls != null && `${t.tool_calls} tool calls`, t.tool_errors ? `${t.tool_errors} tool errors` : "", t.redundant_calls ? `${t.redundant_calls} repeated calls` : "", t.total_tokens && `${t.total_tokens.toLocaleString()} tokens`, t.eval_usage && t.eval_usage.total && `customer + judges ${(t.eval_usage.total.input_tokens + t.eval_usage.total.output_tokens).toLocaleString()} tokens${t.eval_usage.total.cost_usd != null ? " (" + money(t.eval_usage.total.cost_usd) + ")" : ""}`, t.reasoning_output_tokens && `${t.reasoning_output_tokens.toLocaleString()} reasoning tokens`, t.cost_usd && money(t.cost_usd)].filter(Boolean).map(esc).join(" · ")}</div>`;
   $("dbody").innerHTML = judgeSection(t) + convoSection(t);
 }
 
