@@ -104,6 +104,9 @@ def _summarize(path: Path, root: Path, run: int) -> dict | None:
         "tool_calls": traj.get("tool_calls"),
         "tool_errors": traj.get("tool_errors"),
         "cost_usd": traj.get("cost_usd") or usage.get("total_cost_usd"),
+        # simulated user + judges (run_batch's eval_usage); absent in results made before it
+        "eval_cost_usd": ((traj.get("eval_usage") or {}).get("total") or {}).get("cost_usd"),
+        "eval_tokens": _eval_tokens(traj.get("eval_usage")),
         "total_tokens": traj.get("total_tokens") or usage.get("total_tokens"),
         "reasoning_tokens": traj.get("reasoning_output_tokens") or usage.get("reasoning_output_tokens"),
         "last_message": last_msg,
@@ -115,6 +118,11 @@ def _summarize(path: Path, root: Path, run: int) -> dict | None:
     return summary
 
 
+def _eval_tokens(usage: dict | None) -> int | None:
+    total = (usage or {}).get("total")
+    return (total["input_tokens"] + total["output_tokens"]) if total else None
+
+
 def _metrics(rows: list[dict], expected_tasks: int, num_runs: int) -> dict:
     scored = [r for r in rows if r["status"] in ("pass", "fail")]
     by_task: dict[str, list[dict]] = {}
@@ -123,6 +131,7 @@ def _metrics(rows: list[dict], expected_tasks: int, num_runs: int) -> dict:
     complete = [runs for runs in by_task.values() if len(runs) >= num_runs]
     ux = [r["ux_score"] for r in rows if isinstance(r.get("ux_score"), (int, float))]
     costs = [r["cost_usd"] for r in rows if isinstance(r.get("cost_usd"), (int, float))]
+    eval_costs = [r["eval_cost_usd"] for r in rows if isinstance(r.get("eval_cost_usd"), (int, float))]
     return {
         "finished": len(rows),
         "expected": expected_tasks * num_runs,
@@ -137,6 +146,9 @@ def _metrics(rows: list[dict], expected_tasks: int, num_runs: int) -> dict:
         "mean_ux": sum(ux) / len(ux) if ux else None,
         "total_cost": sum(costs) if costs else None,
         "cost_per_traj": sum(costs) / len(costs) if costs else None,
+        "eval_cost": sum(eval_costs) if eval_costs else None,
+        "eval_cost_runs": len(eval_costs),
+        "eval_cost_per_traj": sum(eval_costs) / len(eval_costs) if eval_costs else None,
     }
 
 

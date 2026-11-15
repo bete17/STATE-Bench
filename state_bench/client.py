@@ -40,6 +40,7 @@ from tenacity import (
     stop_after_attempt,
 )
 
+from state_bench import eval_usage
 from state_bench.paths import CONFIGS_DIR
 
 EndpointDeployment = tuple[str, str]  # (endpoint_url, deployment_name)
@@ -467,6 +468,14 @@ class LLMClient(BaseLLMClient):
         else:
             raise ValueError(f"Unknown provider: {self.provider!r}")
 
+    # Set on the evaluation client (simulated user and judges) only: its usage is counted per task
+    # by eval_usage. The agent's own client keeps its existing accounting.
+    track_eval_usage = False
+
+    def _record_usage(self, response: Any) -> None:
+        if self.track_eval_usage:
+            eval_usage.record(getattr(response, "usage", None))
+
     @_llm_retry
     def complete_chat(
         self,
@@ -492,6 +501,7 @@ class LLMClient(BaseLLMClient):
         if temperature is not None:
             kwargs["temperature"] = temperature
         response = self._client.responses.create(**kwargs)
+        self._record_usage(response)
         _check_content_filter(response)
 
         return response.output_text
@@ -528,6 +538,7 @@ class LLMClient(BaseLLMClient):
         elif temperature is not None:
             kwargs["temperature"] = temperature
         response = self._client.responses.create(**kwargs)
+        self._record_usage(response)
         _check_content_filter(response)
         return response
 
@@ -563,6 +574,7 @@ class LLMClient(BaseLLMClient):
         if reasoning_effort:
             kwargs["reasoning"] = {"effort": reasoning_effort}
         response = self._client.responses.create(**kwargs)
+        self._record_usage(response)
         _check_content_filter(response)
         return response
 
@@ -871,16 +883,21 @@ def _build_eval_client() -> LLMClient | PooledLLMClient:
     Runs made this way are unofficial.
     """
     if os.environ.get("STATE_BENCH_EVAL_PROVIDER", "").strip().lower() == "openai":
-        return build_llm_client(
+        client = build_llm_client(
             deployments=[os.environ.get("STATE_BENCH_EVAL_MODEL", "gpt-5.4")],
             provider="openai",
             api_key_var="STATE_BENCH_EVAL_API_KEY",
         )
-    return build_llm_client(
-        endpoint_var="STATE_BENCH_EVAL_ENDPOINT",
-        deployments_var="STATE_BENCH_EVAL_DEPLOYMENTS",
-        api_key_var="STATE_BENCH_EVAL_API_KEY",
-    )
+    else:
+        client = build_llm_client(
+            endpoint_var="STATE_BENCH_EVAL_ENDPOINT",
+            deployments_var="STATE_BENCH_EVAL_DEPLOYMENTS",
+            api_key_var="STATE_BENCH_EVAL_API_KEY",
+        )
+    # Local change: count this client's tokens per task (eval_usage); what it sends is unchanged.
+    for member in getattr(client, "clients", [client]):
+        member.track_eval_usage = True
+    return client
 
 
 def build_user_sim_client() -> LLMClient | PooledLLMClient:

@@ -42,3 +42,26 @@ self.add_token_usage(
 - Token counts do not affect cost. Use `self.add_cost_usd(...)` for cost.
 
 See the full signature in [`state_bench/agents/base.py`](../../state_bench/agents/base.py).
+
+## Simulated user and judge cost (local addition)
+
+The cost above is the agent's only. Every task also calls the locked evaluation model (GPT-5.4) as the simulated user and as the judges, and that is often the larger share of the bill. `run_batch` records it per task in each result file under `eval_usage`:
+
+For example, a short two-turn travel task:
+
+```json
+"eval_usage": {
+  "model": "gpt-5.4",
+  "simulator": {"calls": 1, "input_tokens": 1521, "cached_input_tokens": 0, "output_tokens": 49, "reasoning_output_tokens": 0, "cost_usd": 0.004537},
+  "judge": {"calls": 2, "input_tokens": 8983, "cached_input_tokens": 1792, "output_tokens": 3929, "reasoning_output_tokens": 3538, "cost_usd": 0.07736},
+  "total": {"calls": 3, "input_tokens": 10504, "cached_input_tokens": 1792, "output_tokens": 3978, "reasoning_output_tokens": 3538, "cost_usd": 0.081898},
+  "prices_per_1m": {"input": 2.5, "cached_input": 0.25, "output": 15.0}
+}
+```
+
+- `simulator` counts the calls made during the conversation, `judge` those made while scoring it. Retried attempts are included, since they are billed too.
+- Cost uses `STATE_BENCH_EVAL_PRICE_INPUT`, `STATE_BENCH_EVAL_PRICE_CACHED_INPUT` and `STATE_BENCH_EVAL_PRICE_OUTPUT` (USD per 1M tokens) when set, else GPT-5.4's list prices when `STATE_BENCH_EVAL_MODEL` is `gpt-5.4`; otherwise only tokens are saved.
+- Counting does not change what the evaluation model is sent or returns, and it is not part of the official metrics.
+- Results made before this change have no `eval_usage`. Scoring with `state_bench.scripts.score` on its own does not record it.
+
+The tracker (`tools/tracker.py`) shows it as "Customer + judge cost", and per result in its detail view.
