@@ -15,8 +15,16 @@ Two steps, per domain:
    with the training tasks ready to be ranked in (its join) instead of
    processing them itself. Ranking is skipped during these builds.
 
+3. Smaller pack (--small, after 1 and 2). Copies the prepared statebench-train-<domain>
+   to statebench-train-<domain>-small with the same options, except every section budget
+   (the space ag gives the past cases and requests it adds) at SMALL_FACTOR (20%) of ag's
+   default: a pack about 64% smaller than run 4's, measured over the same tasks (40% gave only
+   41% smaller, as the requests ag adds take much of the pack). Nothing is rebuilt: the budgets apply when a task's
+   context is put together, not to the prepared tasks.
+
 Usage:
     python tools/prebuild_ag_training.py --domain travel
+    python tools/prebuild_ag_training.py --domain travel --small
 """
 
 from __future__ import annotations
@@ -66,6 +74,20 @@ OPTIONS = {
 }
 
 
+#: The section budgets: how much room ag gives each part of what it adds (config.section_budgets).
+SECTION_BUDGETS = ("keep_previous_task_tokens", "keep_temporal_relevant_tokens", "keep_task_relevant_tokens",
+                   "all_task_tokens", "parallel_index_tokens", "keep_so_far_tokens")
+SMALL_FACTOR = 0.2          # what runs 4b and 5 use; --factor sets another
+
+
+def small_options(factor: float = SMALL_FACTOR) -> dict:
+    """OPTIONS with every section budget at `factor` of ag's default."""
+    from ag.ag_policies.proactive_context_manager.config import ProactiveContextManagerConfig
+
+    default = ProactiveContextManagerConfig()
+    return {**OPTIONS, **{k: int(getattr(default, k) * factor) for k in SECTION_BUDGETS}}
+
+
 def _toml(value) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -74,7 +96,7 @@ def _toml(value) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n") + '"'
 
 
-def write_options(name: str) -> None:
+def write_options(name: str, options: dict = OPTIONS) -> None:
     from pathlib import Path
 
     from ag.ag_harness.store.paths import gatherer_dir
@@ -85,7 +107,7 @@ def write_options(name: str) -> None:
     if not sep:
         raise RuntimeError(f"{path} has no [options] table")
     lines = ["[options]", "# set by tools/prebuild_ag_training.py for the STATE-Bench runs"]
-    lines += [f"{k} = {_toml(v)}" for k, v in OPTIONS.items()]
+    lines += [f"{k} = {_toml(v)}" for k, v in options.items()]
     path.write_text(head + "\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -139,13 +161,44 @@ def prebuild(domain: str, workers: int) -> None:
           f"channels with tasks: {with_tasks}; ready builds: {joinable}")
 
 
+def make_small(domain: str, factor: float = SMALL_FACTOR, force: bool = False) -> None:
+    """statebench-train-<domain>-small: a copy of the prepared seed with small_options()."""
+    import importlib.util
+    from pathlib import Path
+
+    from ag.ag_harness.home import home
+
+    spec = importlib.util.spec_from_file_location("_small_oc", Path(__file__).resolve().parent.parent / "agents" / "opencode_agent.py")
+    oc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(oc)
+    source, target = oc.seed_gatherer_name(domain), oc.seed_gatherer_name(domain, "small")
+    if force:
+        import shutil
+
+        from ag.ag_harness.store.paths import gatherer_dir
+
+        shutil.rmtree(gatherer_dir(target), ignore_errors=True)
+    oc.copy_gatherer(source, target)
+    options = small_options(factor)
+    write_options(target, options)
+    manager = home().manager(target)
+    manager.init(target)
+    policy = manager.policy
+    for key, value in options.items():                       # the options took
+        assert getattr(policy.config, key) == value, f"option {key} not applied"
+    print(f"{target}: copied from {source}; section budgets " + ", ".join(f"{k}={options[k]}" for k in SECTION_BUDGETS))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--domain", choices=DOMAINS, action="append", required=True)
     parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--small", action="store_true", help="make the smaller-pack copy of an already prepared seed")
+    parser.add_argument("--factor", type=float, default=SMALL_FACTOR, help="--small: section budgets as a share of the default")
+    parser.add_argument("--force", action="store_true", help="--small: replace an existing copy")
     args = parser.parse_args()
     for domain in args.domain:
-        prebuild(domain, args.workers)
+        make_small(domain, args.factor, args.force) if args.small else prebuild(domain, args.workers)
 
 
 if __name__ == "__main__":
