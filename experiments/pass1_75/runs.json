@@ -3,5 +3,6 @@
   "run_2": "Run 2 · OpenCode harness",
   "run_3": "Run 3 · OpenCode + training lookup",
   "run_4": "Run 4 · OpenCode + ag + training",
-  "run_4b": "Run 4b · Run 4 with a 64% smaller ag pack"
+  "run_4b": "Run 4b · Run 4 with a 64% smaller ag pack",
+  "run_5": "Run 5 · Run 4b with one shared ag memory per domain"
 }

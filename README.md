@@ -22,7 +22,7 @@
 
 We test whether [Actor-Gatherer](https://github.com/bete17/actor-gatherer) (ag), a context manager that edits what the model sees before every call, helps an agent that already runs inside a harness ([OpenCode](https://opencode.ai)). The benchmark itself is unchanged: same simulated customers, judges, tools, tasks and scoring.
 
-### Experiment `pass1_75`: five agent setups, same 75 tasks
+### Experiment `pass1_75`: six agent setups, same 75 tasks
 
 75 test tasks (25 per domain), the same tasks for every run, one attempt each. Agent model: `gpt-6.1-sol` at medium reasoning. Judge and simulated customer: STATE-Bench's locked `gpt-5.4`.
 
@@ -33,14 +33,20 @@ We test whether [Actor-Gatherer](https://github.com/bete17/actor-gatherer) (ag),
 | `run_3` | OpenCode + a lookup tool over the 100 training conversations per domain | 69.3% | 76% | 72% | 60% | 4.19 | $2.22 |
 | `run_4` | OpenCode + ag + the same lookup; ag also adds related training conversations to every model call | 72.0% | 76% | 68% | 72% | 4.44 | $9.08 |
 | `run_4b` | Run 4 with a 64% smaller ag pack (every ag section budget at 20% of its default) | 73.3% | 68% | 80% | 72% | 4.31 | $4.57 |
+| `run_5` | Run 4b with one shared ag memory per domain: each finished task is saved into it for the later ones | 73.0%* | 80% | 64% | 75%* | 4.25 | $4.44 |
+
+\* 74 tasks: shopping task 117 crashed before it started (the computer ran out of memory). On the same 74 tasks, runs 4, 4b and 5 passed 53, 54 and 54.
+
+Run times (the three domains run at once, so the slowest sets the total): run 4 about 31 min, run 4b about 16 min, both with 3 tasks at a time per domain; run 5 about 58 min, with 1 at a time.
 
 Things to keep in mind:
 
 - One attempt per task, so a difference of a few tasks is not yet reliable. Run 3 vs run 4: 7 tasks passed only with ag, 5 only without. Run 4b's 3 extra support passes are mostly tasks that runs 1–3 passed and only run 4 missed.
 - Agent cost is the agent model only, at `gpt-6.1-sol` list prices ($2.00 per 1M input tokens, $0.10 cached, $10.00 output). ag's own model calls (Gemini) are not included.
-- The simulated customer and the judges are billed too. From run 4b on, each result records their tokens and cost (`eval_usage`): $8.95 for run 4b's 75 tasks ($0.80 customer, $8.15 judges), more than the agent itself.
-- Runs 4 and 4b go beyond the Agent Learning Track's rules: the track lets learnings reach the agent only through the `retrieve_learnings` lookup, and ag adds a second route. Run 3 follows them.
-- No run learns from the test tasks: every task starts from a fresh copy of the training memory.
+- The simulated customer and the judges are billed too. From run 4b on, each result records their tokens and cost (`eval_usage`): $8.95 for run 4b's 75 tasks ($0.80 customer, $8.15 judges) and $8.61 for run 5's 74, more than the agent itself.
+- Runs 4, 4b and 5 go beyond the Agent Learning Track's rules: the track lets learnings reach the agent only through the `retrieve_learnings` lookup, and ag adds a second route. Run 3 follows them.
+- Runs 1–4b do not learn from the test tasks: every task starts from a fresh copy of the training memory. Run 5 does, on purpose: each task can draw on the earlier test tasks of its domain, never on its own.
+- Run 5 showed no sign of learning on the job. Only later tasks have earlier ones to draw on, yet on the last 13 tasks of each domain it passed 29, against 31 for run 4b (first 12: 25 against 24).
 
 ### Look at the results on your computer
 
@@ -72,7 +78,7 @@ experiments/
         run1/<task_id>.json           # one scored conversation per task and attempt
       customer_support/ ...
       shopping_assistant/ ...
-    run_2/ ...  run_3/ ...  run_4/ ...  run_4b/ ...
+    run_2/ ...  run_3/ ...  run_4/ ...  run_4b/ ...  run_5/ ...
 ```
 
 If someone sends you results, put each run folder (for example `run_4/`, with its three domain folders inside) into the matching experiment folder, add it to `runs.json` if you want a readable name, then refresh the tracker. Run logs (`*.log`) and ag's memory folders stay out of git.
@@ -116,7 +122,7 @@ experiments/run_experiment.sh pass1_75 run_4 OpenCodeAgTrainAgent
 experiments/run_experiment.sh pass1_75 run_4b OpenCodeAgTrainSmallAgent
 ```
 
-**Run 5 (not run yet): one shared ag memory per domain.** Like run 4b, but each domain keeps one memory for the whole run, and every finished task is saved into it, so later tasks can draw on earlier test tasks. This tests whether ag learns on the job. Tasks within a domain run one at a time so each sees the ones before it (the three domains still run at once), so it needs `WORKERS=1`:
+**Run 5: one shared ag memory per domain.** Like run 4b, but each domain keeps one memory for the whole run, and every finished task is saved into it, so later tasks can draw on earlier test tasks. This tests whether ag learns on the job. Tasks within a domain run one at a time so each sees the ones before it (the three domains still run at once), so it needs `WORKERS=1`. Close ag's dashboard while it runs: run 5 lost a task to running out of memory with it open.
 
 ```bash
 WORKERS=1 experiments/run_experiment.sh pass1_75 run_5 OpenCodeAgSharedSmallAgent

@@ -1,0 +1,741 @@
+{
+  "task_id": "51-challenge_chained_changes",
+  "user_id": "user_001",
+  "task_summary": "**Task:** User wants to move BOTH bookings to new dates while keeping the combined added cost within a $220 budget. Correct resolution: the London medical change costs $150 ($100 discounted fee + $50 fare difference). For San Francisco, the obvious in-place change costs $130 (a flat $150 change fee minus a $20 cheaper fare), but canceling that booking and rebooking the same $380 flight fresh costs only $40 (a $60 cancellation fee against the $400 paid, then $380 rebooked), because cancel-and-rebook avoids the $150 change fee entirely. The cheapest way to do both is London change + San Francisco cancel-and-rebook = $190, which fits the $220 budget; doing both as in-place changes costs $280 and busts it.\n\n**Challenge:** The straightforward path (just change both flights in place) is NOT the cheapest and exceeds the budget. The agent must recognize that for the San Francisco booking, canceling and rebooking is materially cheaper than an in-place change, dig out that option, and use it to bring both moves in under budget.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "state_sf_cancel_rebook_cheaper_than_change",
+      "kind": "must",
+      "requirement": "Agent must convey that, for the San Francisco booking, canceling and rebooking is materially cheaper than an in-place change — in substance, that an in-place change is roughly $130 (around a $150 change fee, lightly offset by a cheaper fare) while canceling and rebooking the same flight nets only about $40 (a roughly $60 cancellation fee, then the ~$380 ticket against the ~$340 refund), because cancel-and-rebook avoids the change fee. Accept the requirement if the agent makes this cheaper-by-cancel-and-rebook comparison clear with substantially correct figures (the cancel-and-rebook ~$40 and the conclusion that it beats the in-place change); the agent need not recite every intermediate number or the exact $130 in those words, as long as both options are priced and the cheaper one is identified.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent clearly compared both San Francisco options with substantially correct figures: direct in-place change at $130 extra ($150 fee offset by a $20 cheaper fare) versus cancel-and-rebook at $40 net ($380 new ticket against a $340 refund after a $60 cancellation fee), and explicitly identified cancel-and-rebook as cheaper."
+    },
+    {
+      "id": "state_cheapest_combo_within_budget",
+      "kind": "must",
+      "requirement": "Agent must conclude that the cheapest way to do both moves is the London medical change (about $150) plus canceling and rebooking San Francisco (about $40) for roughly $190 total, and that this total fits within the $220 budget. Accept the requirement as long as the agent identifies this combined ~$190 cheapest plan and says it is within budget, with substantially correct figures. The agent does NOT need to separately spell out the cost of the rejected \"change both in place\" alternative here — that contrast is covered by the cancel-vs-change requirement and by the agent's chosen actions — so do not fail this requirement merely because the ~$280 both-in-place figure was not restated.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent concluded that the cheapest combined plan was the London medical change for $150 plus San Francisco cancel-and-rebook for $40, totaling $190, and stated that this is $30 under the user's $220 budget."
+    },
+    {
+      "id": "state_both_moves_executed_cheapest_path",
+      "kind": "must",
+      "requirement": "Agent must actually carry out both moves via the cheapest path: change BK-1000 to the June 21 London flight (medical) in place, and cancel BK-1001 and rebook the June 25 San Francisco flight as a fresh booking, rather than changing the San Francisco booking in place.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The tool calls show the required cheapest-path execution: BK-1000 was changed in place to BA101 on June 21 with change_reason='medical' and confirm=true; for San Francisco, the agent created a fresh booking (BK-1002 on UA101 for June 25) and cancelled BK-1001 with confirm=true, rather than changing BK-1001 in place."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.9,
+  "ux_reasoning": "The agent found the non-obvious cheapest valid strategy on its own—directly changing London but canceling and rebooking San Francisco—bringing the total to $190 within the $220 budget. It kept the comparison phase read-only, clearly separated preview from execution, disclosed the per-booking math, gross charge/refund timing, and preserved preferences before acting, then waited for explicit approval in a later turn. The user never had to correct bad math, wrong policy framing, or a missed cheaper path; their only follow-up was a reassurance recap. Responses were compact and decision-ready, with exact arithmetic and a clean final-state summary.",
+  "turns": 3,
+  "tool_calls": 17,
+  "tool_errors": 0,
+  "redundant_calls": 1,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I need to move two of my flights and I want to keep the total extra cost low. Booking BK-1000 to London needs to move to June 21 — I have a medical reason. And booking BK-1001 to San Francisco needs to move to June 25 for personal reasons. Put any charges on my credit card (I'm not using points for this), and my total budget for both moves combined is $220. What's the cheapest way to do both?"
+    },
+    {
+      "role": "assistant",
+      "content": "**The cheapest combination is to change London directly and cancel-and-rebook San Francisco: $190 net extra total**, which is **$30 under your $220 budget**. No points are needed.\n\n### Cost comparison\n\n| Booking | Direct change | Cancel and rebook | Cheapest approach |\n|---|---:|---:|---|\n| **BK-1000 — London, June 21** | $100 medical change fee + $50 fare difference = **$150 extra** | $950 replacement − $720 refund = **$230 extra**; cancellation fee is $180 | **Direct change: $150** |\n| **BK-1001 — San Francisco, June 25** | $150 personal change fee − $20 lower fare = **$130 extra** | $380 replacement − $340 refund = **$40 extra**; cancellation fee is $60 | **Cancel and rebook: $40** |\n| **Combined** | **$280** | **$270** | **Mixed approach: $190** |\n\nFor London, the medical reason reduces the standard **$200 international change fee by 50% to $100**. That discount applies only to the London booking—not the personal San Francisco move.\n\n### Recommended flights\n- **London:** British Airways **BA101**, **June 21**, JFK → LHR, **8:45 AM (morning)**, **nonstop**, economy.\n- **San Francisco:** United **UA101**, **June 25**, ORD → SFO, **4:15 PM (afternoon)**, **nonstop**, economy.\n\nI searched both dates without airline, departure-time, or stop-count restrictions; these were the available results.\n\nBoth would retain your existing preferences: **aisle, kosher meal, Wi‑Fi, extra legroom, and no insurance**.\n\n### Credit-card impact\n- London change charge: **$150**\n- San Francisco replacement charge: **$380**\n- San Francisco cancellation refund: **$340**\n- **Net extra: $190**\n\nThe gross charges would be **$530**, with the **$340 refund processed separately**, so the refund may not be available immediately.\n\n**Nothing has been changed or canceled yet.** Would you like me to proceed with this $190-net plan?",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "Compare two flight moves combined $220 cash budget medical London June21 personal San Francisco June25 direct change versus cancellation rebook preserve preferences no points",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (28-cascade_cancel_rebook_international):\nCustomer: I'd like to cancel my San Francisco to New York flight — booking BK-MS03 — and rebook a flight to London instead.\n  [tool] get_booking({\"booking_id\": \"BK-MS03\"}) -> {\"booking_id\": \"BK-MS03\", \"user_id\": \"user_001\", \"flight_id\": \"DL100\", \"status\": \"confirmed\", \"cabin_class\": \"business\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 900, \"payment_method\": \"credit_card\", \"points...\n  [tool] cancel_booking({\"booking_id\": \"BK-MS03\", \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-MS03\", \"cancellation_fee\": 45, \"refund_amount\": 855, \"reason\": \"Business cancellation fee: 5% of $900 = $45\"}\nAgent: I pulled up BK-MS03.\n\nCurrent trip:\n- SFO → JFK\n- Departure: 2026-06-22 at 8:00 AM\n- Cabin: business\n\nCancellation preview:\n- Fee: $45\n- Refund: $855\n\nI have not canceled it yet.\n\nTo rebook you to London, I just need:\n1. Which London airport you want: Heathrow (LHR), Gatwick (LGW), etc.\n2. Whether you want to fly on the same date, June 22, from SFO\n\nIf you want, I can start by searching SFO → LHR on June 22 and keep your current preferences:\n- business\n- aisle seat\n- kosher meal\n- Wi‑Fi\n- extra legroom\nCustomer: Thanks. Please go ahead and cancel BK-MS03 with the $45 fee and $855 refund.\n\nFor the replacement, I want JFK to Heathrow on June 24, business class. My preferences are Delta, morning, nonstop, aisle seat, kosher meal, Wi‑Fi, extra legroom, and no insurance.\n  [tool] cancel_booking({\"booking_id\": \"BK-MS03\", \"confirm\": true}) -> {\"status\": \"cancelled\", \"booking_id\": \"BK-MS03\", \"refund_amount\": 855, \"cancellation_fee\": 45, \"reason\": \"Business cancellation fee: 5% of $900 = $45\"}\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"LHR\", \"date\": \"2026-06-24\", \"airline\": \"DL\", \"time_range\": \"morning\", \"max_stops\": 0, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"DL101\", \"airline_code\": \"DL\", \"origin\": \"JFK\", \"destination\": \"LHR\", \"departure_time\": \"2026-06-24T11:30:00\", \"arrival_time\": \"2026-06-24T15:58:00\", \"duration_minutes\": 268, \"stops\": 0, \"cabin_prices\": {\"economy\": 500, \"business\": 1200}, \"status\": \"scheduled\", \"route_type...\nAgent: Done — BK-MS03 has been canceled.\n\nCancellation result:\n- Cancellation fee: $45\n- Refund: $855\n\nI also found a matching replacement flight:\n\n- DL101\n- JFK → LHR\n- Jun 24, 2026\n- Departs 11:30 AM\n- Nonstop\n- Business class: $1,200\n\nYour requested preferences can be applied:\n- aisle seat\n- kosher meal\n- Wi‑Fi\n- extra legroom\n- no insurance\n\nIf you want me to book DL101, tell me your payment method:\n- credit card\n- points\n- points + cash\n\nIf you want points or points + cash, I can also check your loyalty balance first.\nCustomer: Credit card, please. Before you book it, can you give me a full preview with the selected flight, total cash cost, payment method, cabin, seat type, meal, Wi‑Fi, extra legroom, and confirmation that no insurance will be added?\nAgent: Here’s the preview before I book:\n\nFlight selected\n- DL101\n- JFK → LHR\n- Departure: 2026-06-24 at 11:30 AM\n- Nonstop\n- Cabin: business\n\nBooking selections\n- Payment method: credit card\n- Seat type: aisle\n- Meal: kosher\n- Wi‑Fi: yes\n- Extra legroom: yes\n- Insurance: no\n\nTotal cash cost\n- Current displayed business fare: $1,200\n\nI can confirm the booking request would be submitted with no insurance added.\n\nOne note: the booking tools show the flight fare up front, but they do not provide a separate pre-booking price breakdown for options like Wi‑Fi or extra legroom. So the previewable total I can confirm right now is the displayed business fare of $1,200, with your selected preferences attached.\n\nIf you want, I can go ahead and book DL101 now.\nCustomer: That works for me — please go ahead and book DL101 on my credit card with business class, an aisle seat, kosher meal, Wi‑Fi, extra legroom, and no insurance.\n  [tool] create_booking({\"flight_id\": \"DL101\", \"user_id\": \"user_001\", \"cabin_class\": \"business\", \"seat_type\": \"aisle\", \"payment_method\": \"credit_card\", \"cash_amount\": 0, \"points_used\": 0, \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"paid_checked_bags\": 0}) -> {\"status\": \"confirmed\", \"booking_id\": \"BK-0001\", \"flight_id\": \"DL101\", \"cabin_class\": \"business\", \"price\": 1200, \"payment_method\": \"credit_card\"}\nAgent: Booked.\n\nNew booking details:\n- Booking ID: BK-0001\n- Flight: DL101\n- Route: JFK → LHR\n- Cabin: business\n- Payment method: credit card\n- Price: $1,200\n\nApplied preferences:\n- Seat: aisle\n- Meal: kosher\n- Wi‑Fi: yes\n- Extra legroom: yes\n- Insurance: no\n- Extra checked bags: 0\n\nYour prior booking BK-MS03 was canceled with:\n- Fee: $45\n- Refund: $855\n\nIf you want, I can also help with a hotel or car in London.\nCustomer: Thanks — just to confirm, the new London booking is DL101 on June 24 from JFK to LHR, nonstop in business class for $1,200, paid in full by credit card, with an aisle seat, kosher meal, Wi‑Fi, extra legroom, and no insurance, correct? If so, [TASK_DONE]",
+              "Past conversation (71-challenge_bereavement_one_booking_only):\nCustomer: I have a family bereavement and need to postpone my trip. Please change BK-1000 (Paris flight) to June 24 — that is the bereavement-related one. Also change BK-1001 (San Francisco) to June 28 — that one is just personal scheduling. My user ID is user_001.\n  [tool] get_booking({\"booking_id\": \"BK-1000\"}) -> {\"booking_id\": \"BK-1000\", \"user_id\": \"user_001\", \"flight_id\": \"AF100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 900, \"payment_method\": \"credit_card\", \"points_...\n  [tool] get_booking({\"booking_id\": \"BK-1001\"}) -> {\"booking_id\": \"BK-1001\", \"user_id\": \"user_001\", \"flight_id\": \"UA100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 400, \"payment_method\": \"credit_card\", \"points_...\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"CDG\", \"date\": \"2026-06-24\", \"airline\": \"AF\", \"time_range\": \"morning\", \"max_stops\": 1, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"AF101\", \"airline_code\": \"AF\", \"origin\": \"JFK\", \"destination\": \"CDG\", \"departure_time\": \"2026-06-24T10:15:00\", \"arrival_time\": \"2026-06-24T14:14:00\", \"duration_minutes\": 239, \"stops\": 0, \"cabin_prices\": {\"economy\": 950, \"business\": 2375}, \"status\": \"scheduled\", \"route_type...\n  [tool] search_flights({\"origin\": \"ORD\", \"destination\": \"SFO\", \"date\": \"2026-06-28\", \"airline\": \"UA\", \"time_range\": \"afternoon\", \"max_stops\": 1, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"UA101\", \"airline_code\": \"UA\", \"origin\": \"ORD\", \"destination\": \"SFO\", \"departure_time\": \"2026-06-28T13:45:00\", \"arrival_time\": \"2026-06-28T16:17:00\", \"duration_minutes\": 152, \"stops\": 0, \"cabin_prices\": {\"economy\": 420, \"business\": 1050}, \"status\": \"scheduled\", \"route_type...\n  [tool] update_booking({\"booking_id\": \"BK-1000\", \"flight_id\": \"AF101\", \"change_reason\": \"bereavement\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1000\", \"flight_id\": \"AF101\", \"change_fee\": 50, \"fare_difference\": 50, \"price_paid\": 1000}\n  [tool] update_booking({\"booking_id\": \"BK-1001\", \"flight_id\": \"UA101\", \"change_reason\": \"personal\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1001\", \"flight_id\": \"UA101\", \"change_fee\": 75, \"fare_difference\": 20, \"price_paid\": 495}\nAgent: I found matching replacement flights and checked the change costs.\n\nProposed changes:\n- BK-1000, Paris, June 24\n  - New flight: AF101, JFK → CDG\n  - Departs: Jun 24 at 10:15\n  - Reason: bereavement\n  - Change fee: $50\n  - Fare difference: $50\n  - Additional amount due: $100\n  - New total paid: $1,000\n\n- BK-1001, San Francisco, June 28\n  - New flight: UA101, ORD → SFO\n  - Departs: Jun 28 at 13:45\n  - Reason: personal scheduling\n  - Change fee: $75\n  - Fare difference: $20\n  - Additional amount due: $95\n  - New total paid: $495\n\nYour current preferences would stay the same on both:\n- Economy\n- Aisle seat\n- Kosher meal\n- Wi‑Fi\n- Extra legroom\n- No insurance\n\nIf you want, reply with:\n- “Confirm both”\nor\n- “Confirm BK-1000 only”\nor\n- “Confirm BK-1001 only”\nCustomer: Thanks — before I confirm, can you give me the per-booking breakdown and combined additional total clearly? I want to make sure BK-1000 is using the bereavement fee and BK-1001 is using the regular personal-change fee, and also confirm airline, time range, and max stops for each option.\nAgent: Absolutely — here’s the clear breakdown.\n\n### Change-fee basis used\n- **BK-1000** was previewed with **change reason: bereavement**\n- **BK-1001** was previewed with **change reason: personal**\n\nSo yes:\n- **BK-1000 is using the bereavement-related fee**\n- **BK-1001 is using the regular personal-change fee**\n\n## Per-booking breakdown\n\n| Booking | Route | New flight | Airline | Departure | Search time range used | Max stops allowed in search | Resulting flight stops | Change fee | Fare difference | Additional due now | New total after change |\n|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|\n| **BK-1000** | JFK → CDG | **AF101** | **Air France (AF)** | **2026-06-24 10:15** | **morning** | **1** | **0 (nonstop)** | **$50** | **$50** | **$100** | **$1,000** |\n| **BK-1001** | ORD → SFO | **UA101** | **United (UA)** | **2026-06-28 13:45** | **afternoon** | **1** | **0 (nonstop)** | **$75** | **$20** | **$95** | **$495** |\n\n## Combined additional total\n- **BK-1000:** $100\n- **BK-1001:** $95\n- **Total additional amount if you confirm both:** **$195**\n\n## Search criteria used for each option\n### BK-1000\n- **Airline filter:** AF\n- **Time range filter:** morning\n- **Max stops filter:** 1\n- Matched option: **AF101**, which is actually **nonstop**\n\n### BK-1001\n- **Airline filter:** UA\n- **Time range filter:** afternoon\n- **Max stops filter:** 1\n- Matched option: **UA101**, which is actually **nonstop**\n\nIf you want, I can now:\n- **confirm both**\n- **confirm BK-1000 only**\n- **confirm BK-1001 only**\nCustomer: Confirm both, please — the separate fee treatment looks right, and the combined additional total of $195 is within my budget. Please keep the existing booking preferences on both reservations.\n  [tool] update_booking({\"booking_id\": \"BK-1000\", \"flight_id\": \"AF101\", \"change_reason\": \"bereavement\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": true}) -> {\"status\": \"updated\", \"booking_id\": \"BK-1000\", \"changes_a\n[... conversation cut]",
+              "Past conversation (150-strategy_personal_domestic_cancel_rebook_midfare):\nCustomer: I need to move booking BK-1000 to June 26 for personal reasons. Can you compare direct change versus cancel-and-rebook and do the cheaper one?\n  [tool] get_booking({\"booking_id\": \"BK-1000\"}) -> {\"booking_id\": \"BK-1000\", \"user_id\": \"user_002\", \"flight_id\": \"UA100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"window\", \"meal_preference\": \"vegetarian\", \"add_wifi\": false, \"add_extra_legroom\": false, \"add_insurance\": false, \"price_paid\": 335, \"payment_method\": \"credit_card\", \"...\n  [tool] search_flights({\"origin\": \"DEN\", \"destination\": \"SFO\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"morning\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"DEN\", \"destination\": \"SFO\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"early_morning\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"DEN\", \"destination\": \"SFO\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"morning\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"DEN\", \"destination\": \"SFO\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"afternoon\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"UA101\", \"airline_code\": \"UA\", \"origin\": \"DEN\", \"destination\": \"SFO\", \"departure_time\": \"2026-06-26T13:15:00\", \"arrival_time\": \"2026-06-26T17:22:00\", \"duration_minutes\": 247, \"stops\": 0, \"cabin_prices\": {\"economy\": 325, \"business\": 820}, \"status\": \"scheduled\", \"route_type\"...\n  [tool] search_flights({\"origin\": \"DEN\", \"destination\": \"SFO\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"evening\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] search_flights({\"origin\": \"DEN\", \"destination\": \"SFO\", \"date\": \"2026-06-26\", \"airline\": \"\", \"time_range\": \"red_eye\", \"max_stops\": 2, \"max_price\": -1}) -> {\"flights\": [], \"message\": \"No flights found matching your criteria.\"}\n  [tool] cancel_booking({\"booking_id\": \"BK-1000\", \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1000\", \"cancellation_fee\": 50, \"refund_amount\": 285, \"reason\": \"Economy cancellation fee: max($50, 15% of $335) = $50\"}\n  [tool] update_booking({\"booking_id\": \"BK-1000\", \"flight_id\": \"UA101\", \"change_reason\": \"personal\", \"cabin_class\": \"economy\", \"seat_type\": \"window\", \"meal_preference\": \"vegetarian\", \"add_wifi\": false, \"add_extra_legroom\": false, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1000\", \"flight_id\": \"UA101\", \"change_fee\": 150, \"fare_difference\": -10, \"price_paid\": 475}\n  [tool] create_booking({\"flight_id\": \"UA101\", \"user_id\": \"user_002\", \"cabin_class\": \"economy\", \"seat_type\": \"window\", \"payment_method\": \"credit_card\", \"cash_amount\": 0, \"points_used\": 0, \"meal_preference\": \"vegetarian\", \"add_wifi\": false, \"add_extra_legroom\": false, \"add_insurance\": false, \"paid_checked_bags\": 0}) -> {\"status\": \"confirmed\", \"booking_id\": \"BK-1001\", \"flight_id\": \"UA101\", \"cabin_class\": \"economy\", \"price\": 325, \"payment_method\": \"credit_card\"}\n  [tool] cancel_booking({\"booking_id\": \"BK-1000\", \"confirm\": true}) -> {\"status\": \"cancelled\", \"booking_id\": \"BK-1000\", \"refund_amount\": 285, \"cancellation_fee\": 50, \"reason\": \"Economy cancellation fee: max($50, 15% of $335) = $50\"}\nAgent: I compared both options for moving BK-1000 to June 26 and completed the cheaper one.\n\nCheaper option: cancel and rebook\n- New June 26 flight found: UA101, DEN → SFO\n- Departure: 2026-06-26 13:15\n- Arrival: 2026-06-26 17:22\n- Cabin: Economy\n\nCost comparison\n- Direct change to UA101:\n  - Change fee: $150\n  - Fare difference: -$10\n  - New total paid: $475\n  - Extra cost vs what you already paid: $140\n\n- Cancel and rebook:\n  - Cancel BK-1000 refund: $285\n  - Cancellation fee: $50\n  - New booking price: $325\n  - Extra cost vs what you already paid: $40\n\nResult\n- Cancel-and-rebook was cheaper by $100, so I did that.\n\nCompleted actions\n- New booking created: BK-1001\n- Old booking cancelled: BK-1000\n- Refund on old booking: $285\n- New charge: $325\n\nI also kept your same preferences:\n- Seat: window\n- Meal: vegetarian\n- Wi‑Fi: no\n- Extra legroom: no\n- Insurance: no\n\nIf you want, I can also check baggage rules for the new booking.\nCustomer: Before we wrap up, can you confirm the full replacement booking details for BK-1001: route/date, cabin, total cash cost, and the booking-stage preferences saved on it? Also, please include the cancellation fee, refund amount, and the total net cost outcome so I can verify everything matches what I asked for.\n  [tool] get_booking({\"booking_id\": \"BK-1001\"}) -> {\"booking_id\": \"BK-1001\", \"user_id\": \"user_002\", \"flight_id\": \"UA101\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"window\", \"meal_preference\": \"vegetarian\", \"add_wifi\": false, \"add_extra_legroom\": false, \"add_insurance\": false, \"price_paid\": 325, \"payment_method\": \"credit_card\", \"...\nAgent: Confirmed — here are the full replacement booking details for **BK-1001**.\n\n**Replacement booking: BK-1001**\n- **Status:** Confirmed\n- **Route/date:** **DEN → SFO** on **2026-06-26**\n- **Departure:** **13:15**\n- **Cabin:** **Economy**\n- **Total cash cost:** **$325**\n- **Payment method:** Credit card\n\n**Saved booking preferences on BK-1001**\n- **Seat:** Window\n- **Meal:** Vegetarian\n- **Wi‑Fi:** No\n- **Extra legroom:** No\n- **Travel insurance:** No\n- **Paid extra checked bags:** 0\n\n**Cancellation/rebooking financials**\n- **Old booking cancelled:** BK-1000\n- **Cancellation fee:** **$50**\n- **Refund amount:** **$285**\n- **New booking charge:** **$325**\n\n**Net cost outcome**\n- **Additional out-of-pocket from switching:** **$40**  \n  - Calculated as **$325 new charge - $285 refund = $40**\n- **Effective final total trip cost aft\n[... conversation cut]"
+            ]
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "BA100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 900,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-01T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "LHR",
+            "departure_time": "2026-06-19T11:45:00",
+            "route_type": "international"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1001"
+          },
+          "result": {
+            "booking_id": "BK-1001",
+            "user_id": "user_001",
+            "flight_id": "UA100",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 400,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-01T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "SFO",
+            "departure_time": "2026-06-22T15:30:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_user_details",
+          "arguments": {
+            "user_id": "user_001"
+          },
+          "result": {
+            "user_id": "user_001",
+            "name": "Emma Smith",
+            "email": "emma.smith@example.com",
+            "loyalty_tier": "gold",
+            "loyalty_points": 75000
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "JFK",
+            "destination": "LHR",
+            "date": "2026-06-21"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "BA101",
+                "airline_code": "BA",
+                "origin": "JFK",
+                "destination": "LHR",
+                "departure_time": "2026-06-21T08:45:00",
+                "arrival_time": "2026-06-21T13:44:00",
+                "duration_minutes": 299,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 950,
+                  "business": 2375
+                },
+                "status": "scheduled",
+                "route_type": "international"
+              }
+            ]
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "ORD",
+            "destination": "SFO",
+            "date": "2026-06-25"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "UA101",
+                "airline_code": "UA",
+                "origin": "ORD",
+                "destination": "SFO",
+                "departure_time": "2026-06-25T16:15:00",
+                "arrival_time": "2026-06-25T21:21:00",
+                "duration_minutes": 306,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 380,
+                  "business": 950
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "route_type": "international"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "international"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "change",
+            "cabin_class": "economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "change",
+            "rules": {
+              "free_change_window": "Free changes within 24 hours (domestic) or 48 hours (international) of booking",
+              "basic_economy": "Not changeable after free window",
+              "economy_domestic_personal": "Domestic change fee: $75 if departure >7 days, $150 if ≤7 days. Fare difference also applies.",
+              "economy_international_personal": "International change fee: $100 if departure >7 days, $200 if ≤7 days. Fare difference also applies.",
+              "economy_medical": "Medical changes: 50% discount on standard fee, rounded down to the nearest dollar (requires change_reason='medical')",
+              "economy_bereavement": "Bereavement changes: 75% discount on standard fee, rounded down to the nearest dollar (requires change_reason='bereavement')",
+              "jury_duty": "Jury duty: free change (change_reason='jury_duty')",
+              "military": "Military deployment: free change (change_reason='military')",
+              "schedule_change": "Airline schedule changes: free, no fee (change_reason='schedule_change')",
+              "weather": "Weather-related changes: free, no fee (change_reason='weather')",
+              "business": "Free changes (fare difference still applies)",
+              "first": "Free changes (fare difference still applies)",
+              "change_reason_required": "Pass change_reason parameter: 'personal', 'medical', 'bereavement', 'jury_duty', 'military', 'schedule_change', or 'weather'",
+              "route_type_matters": "Fees differ by route type. Check flight route_type."
+            },
+            "applicable_cabin_class": "economy",
+            "applicable_route_type": "domestic"
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "cancellation_fee": 180,
+            "refund_amount": 720,
+            "reason": "International economy cancellation fee: max($75, 20% of $900) = $180"
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1001",
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1001",
+            "cancellation_fee": 60,
+            "refund_amount": 340,
+            "reason": "Economy cancellation fee: max($50, 15% of $400) = $60"
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "BA101",
+            "change_reason": "medical",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1000",
+            "flight_id": "BA101",
+            "change_fee": 100,
+            "fare_difference": 50,
+            "price_paid": 1050
+          }
+        },
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1001",
+            "flight_id": "UA101",
+            "change_reason": "personal",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "confirm": false
+          },
+          "result": {
+            "status": "preview",
+            "booking_id": "BK-1001",
+            "flight_id": "UA101",
+            "change_fee": 150,
+            "fare_difference": -20,
+            "price_paid": 530
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks — before you do anything, can you confirm the key details for each option one more time? I want the per-booking added cost and combined total, and for the San Francisco replacement please confirm the airline, time range, and max stops are United, afternoon, and nonstop."
+    },
+    {
+      "role": "assistant",
+      "content": "Yes—here’s the recap. **Nothing has been changed or canceled.**\n\n| Booking | Recommended action | Added cost |\n|---|---|---:|\n| **BK-1000 — London** | Direct change to **British Airways BA101**, June 21, JFK → LHR, **8:45 AM**, nonstop, economy. **$100 medical change fee + $50 fare difference.** | **$150** |\n| **BK-1001 — San Francisco** | Cancel for a **$340 refund** after the **$60 cancellation fee**, then book **United UA101**, June 25, ORD → SFO, **4:15 PM**, economy, for **$380**. | **$40 net** |\n| **Combined** | Credit card only; no points | **$190 net extra** |\n\nFor the San Francisco replacement:\n- **Airline:** United\n- **Time range:** Afternoon\n- **Stops:** **Nonstop (0 stops)**\n\nOne distinction: the original search had **no airline, time-range, or maximum-stops filter**. The selected flight itself meets your United, afternoon, nonstop criteria.\n\nBoth flights would keep **aisle, kosher meal, Wi‑Fi, extra legroom, and no insurance**. The **$190 net total is $30 below your budget**, though the **$530 in charges and $340 refund** would be processed separately.\n\nI’ll wait for your approval before taking action.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "That works for me. Please go ahead with the London direct change and the San Francisco cancel-and-rebook on my credit card."
+    },
+    {
+      "role": "assistant",
+      "content": "Done—both moves are complete, with **$190 net extra cost**, **$30 under your budget**.\n\n| Trip | Confirmed details | Added cost |\n|---|---|---:|\n| **London — BK-1000** | Changed to **British Airways BA101**, June 21, JFK → LHR, **8:45 AM**, nonstop, economy | **$150**: $100 medical change fee + $50 fare difference |\n| **San Francisco — new BK-1002** | Booked **United UA101**, June 25, ORD → SFO, **4:15 PM (afternoon)**, nonstop, economy | **$40 net**: $380 new charge − $340 refund |\n\n**BK-1001 is canceled**, with a **$60 cancellation fee and $340 refund**.\n\nI verified both confirmed bookings have **aisle seats, kosher meals, Wi‑Fi, extra legroom, and no insurance**.\n\n**Payment:** $530 in credit-card charges, offset by the separately processed $340 refund. **No points were used.**",
+      "tool_calls": [
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-1000",
+            "flight_id": "BA101",
+            "change_reason": "medical",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "confirm": true
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-1000",
+            "changes_applied": [
+              "flight_id",
+              "change_reason"
+            ],
+            "price_paid": 1050,
+            "change_fee": 100,
+            "fare_difference": 50
+          }
+        },
+        {
+          "name": "create_booking",
+          "arguments": {
+            "flight_id": "UA101",
+            "user_id": "user_001",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "payment_method": "credit_card",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "paid_checked_bags": 0
+          },
+          "result": {
+            "status": "confirmed",
+            "booking_id": "BK-1002",
+            "flight_id": "UA101",
+            "cabin_class": "economy",
+            "price": 380,
+            "payment_method": "credit_card"
+          }
+        },
+        {
+          "name": "cancel_booking",
+          "arguments": {
+            "booking_id": "BK-1001",
+            "confirm": true
+          },
+          "result": {
+            "status": "cancelled",
+            "booking_id": "BK-1001",
+            "refund_amount": 340,
+            "cancellation_fee": 60,
+            "reason": "Economy cancellation fee: max($50, 15% of $400) = $60"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1000"
+          },
+          "result": {
+            "booking_id": "BK-1000",
+            "user_id": "user_001",
+            "flight_id": "BA101",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 1050,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-01T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": 100,
+            "fare_difference": 50,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "JFK",
+            "destination": "LHR",
+            "departure_time": "2026-06-21T08:45:00",
+            "route_type": "international"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-1002"
+          },
+          "result": {
+            "booking_id": "BK-1002",
+            "user_id": "user_001",
+            "flight_id": "UA101",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "kosher",
+            "add_wifi": true,
+            "add_extra_legroom": true,
+            "add_insurance": false,
+            "price_paid": 380,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 380,
+            "booked_at": "2026-06-15T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "ORD",
+            "destination": "SFO",
+            "departure_time": "2026-06-25T16:15:00",
+            "route_type": "domestic"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgSharedSmallAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": true,
+    "gatherer": "statebench-shared-travel-20261116-110042",
+    "ag_seed": "statebench-train-travel-small",
+    "training_lookup": true,
+    "session": "ses_e1a34d478ffe2jTtUWpLV1gs8K",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 3,
+    "model_calls": 10,
+    "shared": true,
+    "processed": {
+      "status": "nothing",
+      "note": "fewer than two tasks",
+      "tasks": 1,
+      "seconds": 7.4
+    }
+  },
+  "token_usage": {
+    "input_tokens": 217709,
+    "cached_input_tokens": 193501,
+    "output_tokens": 1777,
+    "reasoning_output_tokens": 20,
+    "total_tokens": 219486,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.09762509999999999,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.09762509999999999
+  },
+  "input_tokens": 217709,
+  "cached_input_tokens": 193501,
+  "output_tokens": 1777,
+  "reasoning_output_tokens": 20,
+  "total_tokens": 219486,
+  "cost_usd": 0.09762509999999999,
+  "state_diff": {
+    "created": {
+      "bookings": {
+        "BK-1002": {
+          "booking_id": "BK-1002",
+          "user_id": "user_001",
+          "flight_id": "UA101",
+          "status": "confirmed",
+          "cabin_class": "economy",
+          "seat_type": "aisle",
+          "meal_preference": "kosher",
+          "add_wifi": true,
+          "add_extra_legroom": true,
+          "add_insurance": false,
+          "price_paid": 380,
+          "payment_method": "credit_card",
+          "points_used": 0,
+          "cash_amount": 380,
+          "booked_at": "2026-06-15T10:00:00",
+          "cancellation_fee": null,
+          "refund_amount": null,
+          "change_fee": null,
+          "fare_difference": null,
+          "delay_compensation": null,
+          "paid_checked_bags": 0
+        }
+      }
+    },
+    "modified": {
+      "bookings": {
+        "BK-1000": {
+          "price_paid": {
+            "old": 900,
+            "new": 1050
+          },
+          "change_fee": {
+            "old": null,
+            "new": 100
+          },
+          "flight_id": {
+            "old": "BA100",
+            "new": "BA101"
+          },
+          "fare_difference": {
+            "old": null,
+            "new": 50
+          }
+        },
+        "BK-1001": {
+          "status": {
+            "old": "confirmed",
+            "new": "cancelled"
+          },
+          "refund_amount": {
+            "old": null,
+            "new": 340
+          },
+          "cancellation_fee": {
+            "old": null,
+            "new": 60
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "change_fee",
+      "expected_value": 100
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "fare_difference",
+      "expected_value": 50
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "flight_id",
+      "expected_value": "BA101"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1000",
+      "field": "price_paid",
+      "expected_value": 1050
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1001",
+      "field": "cancellation_fee",
+      "expected_value": 60
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1001",
+      "field": "refund_amount",
+      "expected_value": 340
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-1001",
+      "field": "status",
+      "expected_value": "cancelled"
+    },
+    {
+      "entity_type": "bookings",
+      "match_fields": {
+        "user_id": "user_001",
+        "flight_id": "UA101",
+        "status": "confirmed",
+        "payment_method": "credit_card",
+        "cash_amount": 380,
+        "points_used": 0,
+        "cabin_class": "economy",
+        "seat_type": "aisle",
+        "meal_preference": "kosher",
+        "add_wifi": true,
+        "add_extra_legroom": true,
+        "add_insurance": false,
+        "paid_checked_bags": 0
+      },
+      "expected_fields": {
+        "add_extra_legroom": true,
+        "add_insurance": false,
+        "add_wifi": true,
+        "booked_at": "2026-06-15T10:00:00",
+        "booking_id": "BK-1002",
+        "cabin_class": "economy",
+        "cancellation_fee": null,
+        "cash_amount": 380,
+        "change_fee": null,
+        "delay_compensation": null,
+        "fare_difference": null,
+        "flight_id": "UA101",
+        "meal_preference": "kosher",
+        "paid_checked_bags": 0,
+        "payment_method": "credit_card",
+        "points_used": 0,
+        "price_paid": 380,
+        "refund_amount": null,
+        "seat_type": "aisle",
+        "status": "confirmed",
+        "user_id": "user_001"
+      }
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 5,
+  "ux_response_density": 5,
+  "ux_base_score": 5.0,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.1,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 3,
+  "ux_tool_call_count": 17,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 1,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 5,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  },
+  "eval_usage": {
+    "model": "gpt-5.4",
+    "simulator": {
+      "calls": 3,
+      "input_tokens": 8945,
+      "cached_input_tokens": 4608,
+      "output_tokens": 99,
+      "reasoning_output_tokens": 0,
+      "cost_usd": 0.01348
+    },
+    "judge": {
+      "calls": 2,
+      "input_tokens": 42718,
+      "cached_input_tokens": 1792,
+      "output_tokens": 2439,
+      "reasoning_output_tokens": 1975,
+      "cost_usd": 0.139348
+    },
+    "total": {
+      "calls": 5,
+      "input_tokens": 51663,
+      "cached_input_tokens": 6400,
+      "output_tokens": 2538,
+      "reasoning_output_tokens": 1975,
+      "cost_usd": 0.152828
+    },
+    "prices_per_1m": {
+      "input": 2.5,
+      "cached_input": 0.25,
+      "output": 15.0
+    }
+  }
+}

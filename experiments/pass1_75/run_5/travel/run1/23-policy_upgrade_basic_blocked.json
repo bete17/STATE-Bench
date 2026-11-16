@@ -1,0 +1,382 @@
+{
+  "task_id": "23-policy_upgrade_basic_blocked",
+  "user_id": "user_005",
+  "task_summary": "**Task:** User asks about upgrading two bookings, one basic economy and one regular economy, with a $700 budget. Correct resolution: Booking BK-PR08a cannot be upgraded because it is a basic economy fare.\n\n**Challenge:** The agent blocks the basic-economy upgrade, quotes the eligible economy-to-business upgrade correctly for the second booking, and frames the result against the user’s budget before proceeding only on the eligible booking.",
+  "state_requirements_met": 1,
+  "state_requirements_reasoning": "All required state assertions matched the saved state_diff.",
+  "state_requirements_details": null,
+  "task_requirements_met": 1,
+  "task_requirements_details": [
+    {
+      "id": "state_basic_blocked",
+      "kind": "must",
+      "requirement": "Agent must explain that booking BK-PR08a cannot be upgraded because it is a basic economy fare.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly stated BK-PR08a is in basic economy and therefore not eligible for upgrades, e.g. 'This booking is in basic economy, which the upgrade policy explicitly makes ineligible for upgrades.'"
+    },
+    {
+      "id": "state_second_booking_upgrade_cost",
+      "kind": "must",
+      "requirement": "Agent must explain that booking BK-PR08b can be upgraded to business for a $420 fare difference.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explained BK-PR08b is eligible and quoted the business upgrade correctly as $420, including the calculation '$700 business fare − $280 already paid = $420 total additional cost.'"
+    },
+    {
+      "id": "state_budget_tradeoff",
+      "kind": "must",
+      "requirement": "Agent must explain that the $420 upgrade for BK-PR08b fits within the user’s $700 budget, while still making clear that only the second booking is eligible.",
+      "evidence": "conversation",
+      "passed": true,
+      "reasoning": "The agent explicitly tied BK-PR08b's $420 upgrade to the user's $700 budget, saying it is 'within your $700 budget,' while also making clear BK-PR08a is still blocked due to the basic economy restriction and only BK-PR08b is eligible."
+    }
+  ],
+  "task_completion_pass": 1,
+  "ux_user_control": 5,
+  "ux_score": 4.7,
+  "ux_reasoning": "The agent kept the informational phase clearly read-only, verified policy and fare facts, explicitly said nothing had been changed or charged, and only executed the business-class upgrade after a later turn with unambiguous user approval. It correctly blocked BK-PR08a because basic economy is not upgrade-eligible, and it quoted BK-PR08b’s upgrade math accurately as $700 minus $280 already paid for a $420 additional cost. The responses were concise and decision-ready, with clear final-state confirmation after the update. The only notable UX imperfection is that the user needed one extra clarification turn to get the separate explanation and explicit budget framing, which could have been anticipated earlier.",
+  "turns": 3,
+  "tool_calls": 7,
+  "tool_errors": 0,
+  "redundant_calls": 0,
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I have two upcoming flights and I'd like to upgrade both to business class. My bookings are BK-PR08a and BK-PR08b."
+    },
+    {
+      "role": "assistant",
+      "content": "I checked both bookings, and only one is eligible for an upgrade:\n\n| Booking | Flight | Current cabin | Business upgrade |\n|---|---|---|---|\n| **BK-PR08a** | BOS → MIA, June 18 | Basic economy | **Not eligible** under the upgrade policy |\n| **BK-PR08b** | MIA → BOS, June 25 | Economy | **$420 additional** ($700 business fare − $280 already paid) |\n\n**Nothing has been changed or charged.** Would you like me to upgrade **BK-PR08b only for $420**, keeping your other preferences unchanged?",
+      "tool_calls": [
+        {
+          "name": "retrieve_learnings",
+          "arguments": {
+            "query": "Upgrade two existing flight bookings to business class check ownership eligibility upgrade pricing combined cost consent",
+            "top_k": 3
+          },
+          "result": {
+            "learnings": [
+              "Past conversation (22-policy_upgrade_path_blocked):\nCustomer: I have booking BK-PR07 in economy. I'd like to upgrade to first class. How much would that cost?\n  [tool] get_booking({\"booking_id\": \"BK-PR07\"}) -> {\"booking_id\": \"BK-PR07\", \"user_id\": \"user_004\", \"flight_id\": \"WN100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"window\", \"meal_preference\": \"standard\", \"add_wifi\": false, \"add_extra_legroom\": false, \"add_insurance\": true, \"price_paid\": 400, \"payment_method\": \"credit_card\", \"poi...\n  [tool] get_user_details({\"user_id\": \"user_004\"}) -> {\"user_id\": \"user_004\", \"name\": \"Noah Brown\", \"email\": \"noah.brown@example.com\", \"loyalty_tier\": \"silver\", \"loyalty_points\": 15000}\n  [tool] get_policies({\"topic\": \"upgrade\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"basic\", \"route_type\": \"domestic\"}) -> {\"topic\": \"upgrade\", \"rules\": {\"economy_to_business\": \"Upgrade fee = target cabin listed price minus amount already paid\", \"business_to_first\": \"Upgrade fee = target cabin listed price minus amount already paid\", \"economy_to_first\": \"Not available directly (must upgrade to business first)\", \"basic_e...\n  [tool] search_flights({\"origin\": \"LAX\", \"destination\": \"JFK\", \"date\": \"2026-06-20\", \"airline\": \"WN\", \"time_range\": \"morning\", \"max_stops\": 0, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"WN100\", \"airline_code\": \"WN\", \"origin\": \"LAX\", \"destination\": \"JFK\", \"departure_time\": \"2026-06-20T11:45:00\", \"arrival_time\": \"2026-06-20T15:06:00\", \"duration_minutes\": 201, \"stops\": 0, \"cabin_prices\": {\"economy\": 400, \"business\": 1000, \"first\": 1800}, \"status\": \"schedule...\nAgent: For BK-PR07, a direct upgrade from economy to first class is **not available** under the upgrade policy.\n\nHere’s the pricing on your flight WN100 (LAX → JFK, June 20):\n\n- **Economy paid:** $400\n- **Business fare:** $1,000\n- **First fare:** $1,800\n\nSo your options are:\n\n- **Upgrade to business now:** **$600**\n- **Then upgrade business to first:** **$800 more**\n\nSo to reach **first class**, it would be **$1,400 additional total**, but it has to be done **in two steps**, not as a single direct economy-to-first upgrade.\n\nIf you want, I can help you upgrade to **business** now.\nCustomer: Thanks, that helps. My comfort budget is $600 max, and I don’t want to spend all of it on upgrades, so if business alone is $600 and first would be $1,400 total, that won’t work for me.\n\nJust to confirm: direct economy-to-first isn’t allowed on BK-PR07, the only path is economy → business for $600, then business → first for another $800, and no upgrade will be made, right?\nAgent: Correct.\n\nFor **BK-PR07**:\n\n- **Direct economy → first** is **not allowed**\n- The only upgrade path is:\n  - **economy → business:** **$600**\n  - **business → first:** **$800 more**\n- Total additional cost to reach **first** would be **$1,400**\n\nAnd **no upgrade has been made** — your booking is still unchanged in **economy**.\nCustomer: [TASK_DONE]",
+              "Past conversation (41-info_upgrade_options):\nCustomer: I'm on booking BK-I06 in economy. What are my upgrade options? Can I go to business or first class, and how much would each cost?\n  [tool] get_booking({\"booking_id\": \"BK-I06\"}) -> {\"booking_id\": \"BK-I06\", \"user_id\": \"user_002\", \"flight_id\": \"UA100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"window\", \"meal_preference\": \"vegetarian\", \"add_wifi\": false, \"add_extra_legroom\": false, \"add_insurance\": false, \"price_paid\": 280, \"payment_method\": \"credit_card\", \"p...\n  [tool] get_user_details({\"user_id\": \"user_002\"}) -> {\"user_id\": \"user_002\", \"name\": \"Liam Johnson\", \"email\": \"liam.johnson@example.com\", \"loyalty_tier\": \"basic\", \"loyalty_points\": 5000}\n  [tool] get_policies({\"topic\": \"upgrade\", \"cabin_class\": \"economy\", \"loyalty_tier\": \"basic\", \"route_type\": \"domestic\"}) -> {\"topic\": \"upgrade\", \"rules\": {\"economy_to_business\": \"Upgrade fee = target cabin listed price minus amount already paid\", \"business_to_first\": \"Upgrade fee = target cabin listed price minus amount already paid\", \"economy_to_first\": \"Not available directly (must upgrade to business first)\", \"basic_e...\n  [tool] search_flights({\"origin\": \"LAX\", \"destination\": \"SFO\", \"date\": \"2026-06-20\", \"airline\": \"UA\", \"time_range\": \"afternoon\", \"max_stops\": 0, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"UA100\", \"airline_code\": \"UA\", \"origin\": \"LAX\", \"destination\": \"SFO\", \"departure_time\": \"2026-06-20T12:45:00\", \"arrival_time\": \"2026-06-20T16:23:00\", \"duration_minutes\": 218, \"stops\": 0, \"cabin_prices\": {\"economy\": 280, \"business\": 700, \"first\": 1260}, \"status\": \"scheduled...\nAgent: For BK-I06, you’re currently in **economy**, so you **are eligible for upgrades**.\n\nYour options:\n\n- **Upgrade to Business:** **Yes**\n  - Current economy fare paid: **$280**\n  - Current business fare: **$700**\n  - **Upgrade cost: $420**\n\n- **Upgrade to First:** **Not directly**\n  - Policy says **economy → first is not available directly**\n  - You would need to **upgrade to business first**\n  - Current first fare on this flight is **$1,260**\n\nSo in short:\n\n- **Business:** available now for **+$420**\n- **First:** **not available as a direct upgrade** from your current economy booking\n\nIf you want, I can also help you with the **business upgrade process**.\nCustomer: Thanks, that helps. Just to confirm, if first isn’t available directly from economy, can it still be reached via business, and what would that cost—either the extra amount from business or the total from my current booking?\nAgent: Yes — **first can be reached via business**, but **not in one direct economy → first upgrade**.\n\nUsing your current flight’s listed prices:\n\n- **Economy paid:** $280\n- **Business fare:** $700\n- **First fare:** $1,260\n\nCosts:\n\n- **Economy → Business:** **+$420**\n- **Business → First:** **+$560**\n- **Total extra from your current booking to end up in First:** **+$980**\n\nSo the two ways to think about it are:\n\n- **Extra from business to first:** **$560**\n- **Total extra from your current economy booking to first (via business):** **$980**\n\nIn effect, that’s:\n- $420 first step, then\n- $560 second step\n\nIf you want, I can also help you check whether moving to **business now** makes sense, since that’s the first required step.\nCustomer: Got it, thanks — that’s clear. So business is **$420**, and first would only be possible **via business**, with **$560 more from business** or **$980 total**, which is over my **$800** budget, so I won’t make any changes. [TASK_DONE]",
+              "Past conversation (87-challenge_jury_duty_only_conflicting_flight):\nCustomer: I have jury duty and need to change my Miami trip. BK-1058 conflicts with jury duty dates so I need to move it to June 26. And BK-1000 to London needs to move to July 2 to accommodate the new schedule. My user ID is user_001.\n  [tool] get_booking({\"booking_id\": \"BK-1058\"}) -> {\"booking_id\": \"BK-1058\", \"user_id\": \"user_001\", \"flight_id\": \"AA100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 400, \"payment_method\": \"credit_card\", \"points_...\n  [tool] get_booking({\"booking_id\": \"BK-1000\"}) -> {\"booking_id\": \"BK-1000\", \"user_id\": \"user_001\", \"flight_id\": \"BA100\", \"status\": \"confirmed\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"price_paid\": 1000, \"payment_method\": \"credit_card\", \"points...\n  [tool] get_user_details({\"user_id\": \"user_001\"}) -> {\"user_id\": \"user_001\", \"name\": \"Emma Smith\", \"email\": \"emma.smith@example.com\", \"loyalty_tier\": \"gold\", \"loyalty_points\": 75000}\n  [tool] search_flights({\"origin\": \"ORD\", \"destination\": \"MIA\", \"date\": \"2026-06-26\", \"airline\": \"AA\", \"time_range\": \"morning\", \"max_stops\": 1, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"AA101\", \"airline_code\": \"AA\", \"origin\": \"ORD\", \"destination\": \"MIA\", \"departure_time\": \"2026-06-26T11:00:00\", \"arrival_time\": \"2026-06-26T14:38:00\", \"duration_minutes\": 218, \"stops\": 0, \"cabin_prices\": {\"economy\": 420, \"business\": 1050}, \"status\": \"scheduled\", \"route_type...\n  [tool] search_flights({\"origin\": \"JFK\", \"destination\": \"LHR\", \"date\": \"2026-07-02\", \"airline\": \"BA\", \"time_range\": \"evening\", \"max_stops\": 1, \"max_price\": -1}) -> {\"flights\": [{\"flight_id\": \"BA101\", \"airline_code\": \"BA\", \"origin\": \"JFK\", \"destination\": \"LHR\", \"departure_time\": \"2026-07-02T19:30:00\", \"arrival_time\": \"2026-07-03T00:58:00\", \"duration_minutes\": 328, \"stops\": 0, \"cabin_prices\": {\"economy\": 1030, \"business\": 2575}, \"status\": \"scheduled\", \"route_typ...\n  [tool] update_booking({\"booking_id\": \"BK-1058\", \"flight_id\": \"AA101\", \"change_reason\": \"jury_duty\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1058\", \"flight_id\": \"AA101\", \"change_fee\": 0, \"fare_difference\": 20, \"price_paid\": 420}\n  [tool] update_booking({\"booking_id\": \"BK-1000\", \"flight_id\": \"BA101\", \"change_reason\": \"jury_duty\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1000\", \"flight_id\": \"BA101\", \"change_fee\": 0, \"fare_difference\": 30, \"price_paid\": 1030}\nAgent: I found replacement flights for both bookings and previewed the changes.\n\n- BK-1058, ORD → MIA: move from Jun 19 to Jun 26 on AA101 at 11:00 AM  \n  - Change fee: $0\n  - Fare difference: $20\n\n- BK-1000, JFK → LHR: move from Jun 25 to Jul 2 on BA101 at 7:30 PM  \n  - Change fee: $0\n  - Fare difference: $30\n\nYour current preferences would stay the same on both bookings:\n- Economy\n- Aisle seat\n- Kosher meal\n- Wi‑Fi: yes\n- Extra legroom: yes\n- Insurance: no\n\nTotal additional cost to finalize both changes: $50.\n\nIf you want, I can go ahead and complete both changes now.\nCustomer: Thanks, but I need to correct one thing: only BK-1058 directly conflicts with jury duty. BK-1000 is just being moved to fit the revised schedule, so that one should have the normal personal change treatment, not jury duty.\n\nBefore I approve, can you confirm the selected June 26 Miami option and July 2 London option with airline, time range, max stops, and the correct separate fees? I also need the combined additional total to be $150 and within my budget.\n  [tool] update_booking({\"booking_id\": \"BK-1000\", \"flight_id\": \"BA101\", \"change_reason\": \"personal\", \"cabin_class\": \"economy\", \"seat_type\": \"aisle\", \"meal_preference\": \"kosher\", \"add_wifi\": true, \"add_extra_legroom\": true, \"add_insurance\": false, \"delay_compensation\": \"none\", \"paid_checked_bags\": 0, \"confirm\": false}) -> {\"status\": \"preview\", \"booking_id\": \"BK-1000\", \"flight_id\": \"BA101\", \"change_fee\": 100, \"fare_difference\": 30, \"price_paid\": 1130}\nAgent: Absolutely — with the corrected change reason, here’s the confirmation.\n\n### Selected replacement flights\n\n**BK-1058 — Miami**\n- Route: ORD → MIA\n- New date: **2026-06-26**\n- Selected flight: **AA101**\n- Airline filter: **AA**\n- Time range filter: **morning**\n- Max stops filter: **1**\n- Actual itinerary: **11:00 AM departure**, **nonstop**\n\n**BK-1000 — London**\n- Route: JFK → LHR\n- New date: **2026-07-02**\n- Selected flight: **BA101**\n- Airline filter: **BA**\n- Time range filter: **evening**\n- Max stops filter: **1**\n- Actual itinerary: **7:30 PM departure**, **nonstop**\n\n### Correct separate change costs\n\n**BK-1058**  \nReason: **jury duty**\n- Change fee: **$0**\n- Fare difference: **$20**\n- Additional total: **$20**\n\n**BK-1000**  \nReason: **personal**\n- Change fee: **$100**\n- Fare difference: **$30**\n- Additional total: **$130**\n\n### Combined additional total\n- **$150 total**\n\nSo yes — with the corrected treatment, the combined additional cost is **exactly $150**, which is **within your stated budget** if your cap is $150.\n\nIf you want, I can now finalize both changes with:\n- **BK-1058 → AA101 on June 26**\n- **BK-1000 → BA101 on July 2**\nCustomer: Yes, please go ahead and finalize both changes with those selected options. Just to confirm, BK-1058 should be processed under the jury duty waiver and BK-1000 under the normal personal change policy, for a combined additional total of $150.\n  [tool] update_booking({\"booking_id\": \"BK-1058\", \"flight_id\": \"AA101\", \"change_reason\": \"jury_duty\", \"cabin_cl\n[... conversation cut]"
+            ]
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-PR08a"
+          },
+          "result": {
+            "booking_id": "BK-PR08a",
+            "user_id": "user_005",
+            "flight_id": "B6100",
+            "status": "confirmed",
+            "cabin_class": "basic_economy",
+            "seat_type": "aisle",
+            "meal_preference": "vegan",
+            "add_wifi": true,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "price_paid": 150,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "BOS",
+            "destination": "MIA",
+            "departure_time": "2026-06-18T16:45:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_booking",
+          "arguments": {
+            "booking_id": "BK-PR08b"
+          },
+          "result": {
+            "booking_id": "BK-PR08b",
+            "user_id": "user_005",
+            "flight_id": "B6101",
+            "status": "confirmed",
+            "cabin_class": "economy",
+            "seat_type": "aisle",
+            "meal_preference": "vegan",
+            "add_wifi": true,
+            "add_extra_legroom": false,
+            "add_insurance": false,
+            "price_paid": 280,
+            "payment_method": "credit_card",
+            "points_used": 0,
+            "cash_amount": 0,
+            "booked_at": "2026-06-10T10:00:00",
+            "cancellation_fee": null,
+            "refund_amount": null,
+            "change_fee": null,
+            "fare_difference": null,
+            "delay_compensation": null,
+            "paid_checked_bags": 0,
+            "origin": "MIA",
+            "destination": "BOS",
+            "departure_time": "2026-06-25T10:00:00",
+            "route_type": "domestic"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "upgrade",
+            "cabin_class": "basic_economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "upgrade",
+            "rules": {
+              "economy_to_business": "Upgrade fee = target cabin listed price minus amount already paid",
+              "business_to_first": "Upgrade fee = target cabin listed price minus amount already paid",
+              "economy_to_first": "Not available directly (must upgrade to business first)",
+              "basic_economy": "Not eligible for upgrades"
+            },
+            "applicable_cabin_class": "basic_economy"
+          }
+        },
+        {
+          "name": "get_policies",
+          "arguments": {
+            "topic": "upgrade",
+            "cabin_class": "economy",
+            "route_type": "domestic"
+          },
+          "result": {
+            "topic": "upgrade",
+            "rules": {
+              "economy_to_business": "Upgrade fee = target cabin listed price minus amount already paid",
+              "business_to_first": "Upgrade fee = target cabin listed price minus amount already paid",
+              "economy_to_first": "Not available directly (must upgrade to business first)",
+              "basic_economy": "Not eligible for upgrades"
+            },
+            "applicable_cabin_class": "economy"
+          }
+        },
+        {
+          "name": "search_flights",
+          "arguments": {
+            "origin": "MIA",
+            "destination": "BOS",
+            "date": "2026-06-25",
+            "airline": "B6"
+          },
+          "result": {
+            "flights": [
+              {
+                "flight_id": "B6101",
+                "airline_code": "B6",
+                "origin": "MIA",
+                "destination": "BOS",
+                "departure_time": "2026-06-25T10:00:00",
+                "arrival_time": "2026-06-25T12:40:00",
+                "duration_minutes": 160,
+                "stops": 0,
+                "cabin_prices": {
+                  "economy": 280,
+                  "business": 700
+                },
+                "status": "scheduled",
+                "route_type": "domestic"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Thanks for checking. Can you compare them separately for me just to be clear: why exactly is **BK-PR08a** not eligible, and for **BK-PR08b**, can you confirm the **$420** upgrade is the total additional cost and that it stays within my **$700 budget**?"
+    },
+    {
+      "role": "assistant",
+      "content": "- **BK-PR08a — BOS → MIA, June 18:** This booking is in **basic economy**, which the upgrade policy explicitly makes **ineligible for upgrades**, including to business. It’s the fare restriction—not your budget—that prevents the upgrade.\n\n- **BK-PR08b — MIA → BOS, June 25:** This booking is in **economy**, which is eligible for a business upgrade. The policy calculates the cost as **$700 business fare − $280 already paid = $420 total additional cost**. That is **within your $700 budget**, leaving **$280** remaining.\n\nNeither booking has been changed, and nothing has been charged.",
+      "tool_calls": null
+    },
+    {
+      "role": "user",
+      "content": "Got it. Please go ahead and upgrade **BK-PR08b** to business for the **$420** additional cost, and leave **BK-PR08a** unchanged since it’s blocked by the basic economy restriction."
+    },
+    {
+      "role": "assistant",
+      "content": "**BK-PR08b has been upgraded to business class** for MIA → BOS on June 25.\n\n- Additional cost: **$420**\n- Updated total paid: **$700**\n- All other booking preferences unchanged\n\n**BK-PR08a remains unchanged** in basic economy.",
+      "tool_calls": [
+        {
+          "name": "update_booking",
+          "arguments": {
+            "booking_id": "BK-PR08b",
+            "cabin_class": "business"
+          },
+          "result": {
+            "status": "updated",
+            "booking_id": "BK-PR08b",
+            "changes_applied": [
+              "cabin_class"
+            ],
+            "price_paid": 700
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "[TASK_DONE]"
+    }
+  ],
+  "evaluation_protocol_id": "state_bench_v0.8.1_gpt54",
+  "simulator_model": "gpt-5.4",
+  "simulator_prompt_hash": "6a94abedb77e2ec3f3b94a149291bc42a6aeacd5691ef0cb69862b9af923ae3c",
+  "agent_name": "OpenCodeAgSharedSmallAgent",
+  "agent_model": {
+    "model_name": "gpt-6.1-sol",
+    "reasoning_level": "medium"
+  },
+  "opencode": {
+    "ag": true,
+    "gatherer": "statebench-shared-travel-20261116-110042",
+    "ag_seed": "statebench-train-travel-small",
+    "training_lookup": true,
+    "session": "ses_e1a3e28c9ffeKr42Y04zDXFRcR",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium",
+    "turns": 3,
+    "model_calls": 7,
+    "shared": true,
+    "processed": {
+      "status": "nothing",
+      "note": "fewer than two tasks",
+      "tasks": 1,
+      "seconds": 9.3
+    }
+  },
+  "token_usage": {
+    "input_tokens": 131409,
+    "cached_input_tokens": 111381,
+    "output_tokens": 598,
+    "reasoning_output_tokens": 0,
+    "total_tokens": 132007,
+    "input_cost_usd": 0.0,
+    "cached_input_cost_usd": 0.0,
+    "output_cost_usd": 0.0,
+    "agent_turn_cost_usd": 0.0671776,
+    "memory_ingestion_cost_usd": 0.0,
+    "memory_retrieval_cost_usd": 0.0,
+    "other_llm_cost_usd": 0.0,
+    "total_cost_usd": 0.0671776
+  },
+  "input_tokens": 131409,
+  "cached_input_tokens": 111381,
+  "output_tokens": 598,
+  "reasoning_output_tokens": 0,
+  "total_tokens": 132007,
+  "cost_usd": 0.0671776,
+  "state_diff": {
+    "created": {},
+    "modified": {
+      "bookings": {
+        "BK-PR08b": {
+          "cabin_class": {
+            "old": "economy",
+            "new": "business"
+          },
+          "price_paid": {
+            "old": 280,
+            "new": 700
+          },
+          "fare_difference": {
+            "old": null,
+            "new": 420
+          }
+        }
+      }
+    },
+    "deleted": {}
+  },
+  "state_requirements_gt": [
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-PR08b",
+      "field": "cabin_class",
+      "expected_value": "business"
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-PR08b",
+      "field": "fare_difference",
+      "expected_value": 420
+    },
+    {
+      "entity_type": "bookings",
+      "record_key": "BK-PR08b",
+      "field": "price_paid",
+      "expected_value": 700
+    }
+  ],
+  "ux_prompt_version": "v27",
+  "ux_user_effort": 4,
+  "ux_response_density": 5,
+  "ux_base_score": 4.7,
+  "ux_score_formula": "0.5_user_control_0.3_user_effort_0.2_response_density",
+  "ux_resource_penalty": 0.0,
+  "ux_resource_penalty_scheme": "fixed_global_v1",
+  "ux_assistant_turn_count": 3,
+  "ux_tool_call_count": 7,
+  "ux_tool_error_count": 0,
+  "ux_repeated_identical_tool_call_count": 0,
+  "ux_assistant_turn_threshold": 8,
+  "ux_tool_call_threshold": 12,
+  "ux_excess_assistant_turn_count": 0,
+  "ux_excess_tool_call_count": 0,
+  "scoring_protocol_id": "state_bench_v0.8.1_gpt54",
+  "judge_model": "gpt-5.4",
+  "judge_reasoning_effort": "high",
+  "judge_prompt_hashes": {
+    "judge_task_requirements.md": "dd4abe82eedb4873cfa015708df99f59cfbfeaa85ac090b01bd1d75eb0500487",
+    "judge_ux_quality.md": "b04009d159fb477c3a215f30f10793c4e0a5587e578d07fcd2bfc7d719f90598",
+    "judge_ux_quality_user.md": "5a6e9fa444fb5da4bd06991f907845a3023a8bb449dbb7c0994f4624fad67b94"
+  },
+  "eval_usage": {
+    "model": "gpt-5.4",
+    "simulator": {
+      "calls": 3,
+      "input_tokens": 4898,
+      "cached_input_tokens": 0,
+      "output_tokens": 126,
+      "reasoning_output_tokens": 0,
+      "cost_usd": 0.014135
+    },
+    "judge": {
+      "calls": 2,
+      "input_tokens": 25153,
+      "cached_input_tokens": 0,
+      "output_tokens": 2577,
+      "reasoning_output_tokens": 2166,
+      "cost_usd": 0.101538
+    },
+    "total": {
+      "calls": 5,
+      "input_tokens": 30051,
+      "cached_input_tokens": 0,
+      "output_tokens": 2703,
+      "reasoning_output_tokens": 2166,
+      "cost_usd": 0.115672
+    },
+    "prices_per_1m": {
+      "input": 2.5,
+      "cached_input": 0.25,
+      "output": 15.0
+    }
+  }
+}
